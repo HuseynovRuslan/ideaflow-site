@@ -7,7 +7,11 @@ services:
     environment:
       TZ: Asia/Baku
       DATA_DIR: /data
-      PGHOST: db
+      # «db» DEYİL: bu konteyner paylaşılan Caddy şəbəkəsinə də qoşulur və orada QRLog-un bazası
+      # məhz «db» adına cavab verir (attendanceqr-db-1 aliases: [attendanceqr-db-1 db]). Ad təkrar
+      # olanda Docker DNS hansını qaytaracağına zəmanət vermir — tətbiq başqa layihənin bazasına
+      # dəyə bilər. Ona görə baza öz şəbəkəsində unikal adla çağırılır.
+      PGHOST: ideaflow-db
       PGPORT: "5432"
       PGDATABASE: ideaflow
       PGUSER: ideaflow
@@ -25,6 +29,9 @@ services:
 
   db:
     image: postgres:17-alpine
+    networks:
+      default:
+        aliases: [ideaflow-db]
     environment:
       POSTGRES_DB: ideaflow
       POSTGRES_USER: ideaflow
