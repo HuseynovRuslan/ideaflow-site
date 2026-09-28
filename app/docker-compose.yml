@@ -2,7 +2,10 @@
 # (shared-caddy simlinki) dayanır və xidməti Caddy şəbəkəsinə qoşur.
 # Port yalnız 127.0.0.1-ə açılır: xaricə çıxış Caddy vasitəsilə olur.
 services:
-  app:
+  # Xidmətin adı şəbəkədə alias olur. «app» ümumi addır və bu konteyner QRLog-un
+  # paylaşılan şəbəkəsinə də qoşulur — orada ümumi ad növbəti layihə ilə toqquşa bilər
+  # (bazada «db» ilə məhz bu oldu). Ona görə ad layihəyə məxsusdur.
+  ideaflow-app:
     build: .
     environment:
       TZ: Asia/Baku

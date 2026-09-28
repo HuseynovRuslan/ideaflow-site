@@ -8,11 +8,10 @@
 #
 # Lokalda bağlanmır — `attendanceqr_default` şəbəkəsi yalnız serverdə var.
 services:
-  app:
+  ideaflow-app:
     networks:
       default:
       proxy_net:
-        aliases: [ideaflow-app]
 networks:
   proxy_net:
     external: true
