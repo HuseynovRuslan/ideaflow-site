@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IdeaFlow — məhsul buraxılışı platforması</title>
+<style>
+  :root{
+    --ink:#16202E;--muted:#5C6775;--line:#E5E1DA;--bg:#F6F4F0;--surface:#FFFFFF;--soft:#F1EEE9;
+    --accent:#1F5E8C;--accent-2:#0E7C66;
+    --author:#1F5E8C;--maker:#C07A2C;--investor:#0E7C66;--seller:#B0396E;--admin:#C0392B;--platform:#42607A;
+    --shadow:0 1px 2px rgba(16,32,46,.05),0 10px 26px rgba(16,32,46,.08);
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none;cursor:pointer}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;padding:10px 16px;border-radius:10px;transition:.15s;border:1px solid transparent}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 16px rgba(31,94,140,.25)}
+  .btn-primary:hover{background:#18496e}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-sm{padding:7px 12px;font-size:13px;border-radius:9px}
+  .muted{color:var(--muted)}
+
+  /* top bar */
+  .topbar{position:sticky;top:0;z-index:40;height:60px;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 22px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:850;font-size:18px;letter-spacing:-.02em}
+  .logo .m{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center}
+  .spacer{flex:1}
+  .roleSel{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .roleSel select{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-weight:650;color:var(--ink)}
+  .bell{position:relative;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;display:grid;place-items:center}
+  .bell .cnt{position:absolute;top:-6px;right:-6px;background:var(--seller);color:#fff;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
+
+  .layout{display:flex;min-height:calc(100vh - 60px)}
+  .side{width:210px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:16px 12px}
+  .side .grp{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 8px 6px}
+  .side a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px}
+  .side a:hover{background:var(--soft)}
+  .side a.on{background:color-mix(in srgb,var(--accent) 12%,#fff);color:var(--accent)}
+  .side a .i{width:18px;height:18px;flex:none;color:currentColor}
+  .content{flex:1;padding:26px 30px;max-width:1000px}
+  @media(max-width:820px){.side{display:none}.content{padding:18px}}
+
+  .page-h{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .page-h h1{font-size:26px;font-weight:840;letter-spacing:-.02em}
+  .page-h p{color:var(--muted);font-size:14.5px;margin-top:3px}
+
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  @media(max-width:760px){.tiles{grid-template-columns:1fr 1fr}}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .tile .v{font-size:26px;font-weight:850;letter-spacing:-.02em}
+  .tile .k{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .card h3{font-size:16px;margin-bottom:6px}
+
+  .pcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:.15s}
+  .pcard:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(16,32,46,.12)}
+  .pcard .cover{height:96px;display:grid;place-items:center;font-size:40px}
+  .pcard .pb{padding:14px 16px}
+  .pcard h4{font-size:16px;margin-bottom:4px}
+  .pcard .meta{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .pcard .foot{display:flex;align-items:center;justify-content:space-between}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:750;padding:4px 10px;border-radius:20px;white-space:nowrap}
+  .rating{font-size:13px;font-weight:800}
+  .rating .s{color:var(--gold,#C9A227)}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chipf{font-size:13px;font-weight:650;padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .chipf.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* forms */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .field textarea{min-height:90px;resize:vertical}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+
+  /* project card */
+  .phead{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+  .phead .ic{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;font-size:32px;flex:none}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:18px}
+  .tabs button{padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+  .kv{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv:last-child{border-bottom:none}
+  .kv b{font-weight:750}
+  .bar{display:flex;height:40px;border-radius:9px;overflow:hidden;border:1px solid var(--line);margin:10px 0}
+  .seg{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;border-right:2px solid #fff}
+  .seg:last-child{border-right:none}
+  .offer{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .offer:last-child{border-bottom:none}
+  .empty{text-align:center;color:var(--muted);padding:30px;font-size:14px}
+
+  /* landing */
+  .hero{background:radial-gradient(1000px 500px at 82% -10%,rgba(14,124,102,.20),transparent 55%),linear-gradient(160deg,#0E2438,#12506B);color:#EAF1F6;text-align:center;padding:80px 24px 70px}
+  .hero h1{font-size:clamp(34px,6vw,58px);font-weight:880;letter-spacing:-.03em;max-width:15ch;margin:16px auto 16px;line-height:1.04}
+  .hero h1 .g{background:linear-gradient(100deg,#7FD9C4,#CFE7F5);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:19px;color:#C7D5E0;max-width:560px;margin:0 auto 30px}
+  .hero .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);color:#DCE8F0;font-size:13px;font-weight:650;padding:8px 15px;border-radius:999px}
+  .enter{max-width:900px;margin:-40px auto 0;padding:0 24px 60px}
+  .enterCard{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:28px;text-align:center}
+  .roles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+  @media(max-width:760px){.roles{grid-template-columns:1fr 1fr}}
+  .rbtn{border:1px solid var(--line);border-radius:14px;padding:18px 14px;background:#fff;text-align:center;transition:.15s}
+  .rbtn:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--c)}
+  .rbtn .ic{width:46px;height:46px;border-radius:13px;background:var(--c);color:#fff;display:grid;place-items:center;margin:0 auto 10px;font-size:20px}
+  .rbtn h4{font-size:15px;margin-bottom:3px}
+  .rbtn p{font-size:12px;color:var(--muted)}
+
+  /* toast */
+  .toasts{position:fixed;bottom:20px;right:20px;z-index:100;display:flex;flex-direction:column;gap:10px}
+  .toast{background:#16202E;color:#fff;padding:12px 16px;border-radius:11px;font-size:13.5px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .2s;max-width:320px}
+  .toast.ok{background:#0E7C66}
+  @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+  .foot-note{font-size:12px;color:var(--muted);margin-top:20px;text-align:center}
+
+  /* dark theme */
+  [data-theme=dark]{--ink:#E7ECF1;--muted:#9BA6B2;--line:#2A3542;--bg:#0F1621;--surface:#17212E;--soft:#1E2A38;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.45)}
+  [data-theme=dark] .topbar{background:rgba(23,33,46,.92)}
+  [data-theme=dark] .btn-ghost,[data-theme=dark] .chipf,[data-theme=dark] .roleSel select,[data-theme=dark] .field input,[data-theme=dark] .field select,[data-theme=dark] .field textarea,[data-theme=dark] .searchbar input,[data-theme=dark] .chatin input{background:#0F1621;color:var(--ink)}
+  .ticon{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:16px}
+  /* status timeline */
+  .timeline{display:flex;margin:6px 0 4px}
+  .tl{flex:1;min-width:66px;text-align:center;position:relative;padding-top:22px}
+  .tl:before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--line)}
+  .tl:first-child:before{left:50%}.tl:last-child:before{right:50%}
+  .tl .d{position:absolute;top:1px;left:50%;transform:translateX(-50%);width:15px;height:15px;border-radius:50%;background:var(--surface);border:3px solid var(--line);z-index:1}
+  .tl.done .d{border-color:var(--accent-2);background:var(--accent-2)}
+  .tl.cur .d{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent)}
+  .tl span{font-size:10.5px;color:var(--muted)}
+  .tl.cur span{color:var(--accent);font-weight:800}
+  /* notif dropdown */
+  .ndrop{position:absolute;top:54px;right:14px;width:300px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:60;overflow:hidden}
+  .ndrop .nh{padding:12px 14px;font-weight:800;font-size:13px;border-bottom:1px solid var(--line)}
+  .ndrop .ni{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--line)}
+  .ndrop .ni:last-child{border-bottom:none}
+  .ndrop .ni .tm{color:var(--muted);font-size:11px;margin-top:2px}
+  /* docs + chat */
+  .doc{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .doc:last-child{border-bottom:none}
+  .doc .dt{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:6px;color:#fff}
+  .doc .nm{flex:1;font-size:14px}
+  .chatbox{display:flex;flex-direction:column;gap:9px;max-height:300px;overflow:auto;margin-bottom:12px;padding:4px}
+  .msg{max-width:78%;padding:9px 13px;border-radius:13px;font-size:13.5px;line-height:1.4}
+  .msg.them{background:var(--soft);align-self:flex-start;border-bottom-left-radius:3px}
+  .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+  .msg .who{font-size:11px;font-weight:700;opacity:.75;margin-bottom:2px}
+  .chatin{display:flex;gap:8px}
+  .chatin input{flex:1;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+  .searchbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .searchbar input{flex:1;min-width:200px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+  /* charts */
+  .chartrow{display:flex;align-items:center;gap:12px;margin:8px 0}
+  .chartrow .cl{width:150px;font-size:13px;flex:none}
+  .chartrow .ct{flex:1;height:22px;background:var(--soft);border-radius:7px;overflow:hidden}
+  .chartrow .cf{height:100%;border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11px;font-weight:800;min-width:32px}
+  /* onboarding tour */
+  .overlay{position:fixed;inset:0;background:rgba(10,20,30,.55);z-index:200;display:grid;place-items:center;padding:20px}
+  .tourcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;max-width:440px;width:100%;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.45);text-align:center}
+  .tourcard .em{font-size:38px}
+  .tourcard h3{font-size:21px;margin:12px 0 8px}
+  .tourcard p{color:var(--muted);font-size:14.5px;line-height:1.55}
+  .tourcard .dots{display:flex;gap:6px;margin:20px auto;justify-content:center}
+  .tourcard .dots span{width:8px;height:8px;border-radius:50%;background:var(--line);transition:.2s}
+  .tourcard .dots span.on{background:var(--accent);width:22px;border-radius:4px}
+  .tourcard .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ================= I18N =================
+   Hər açar üçün üç variant: [AZ, RU, EN]
+   Dil dəyişdirmək: yuxarı paneldəki dil düyməsi (AZ → RU → EN → AZ)
+   ======================================== */
+const LANGS=['az','ru','en'];
+const LI={az:0,ru:1,en:2};
+
+const DICT={
+  /* --- ümumi / shell --- */
+  appTitle:['IdeaFlow — məhsul buraxılışı platforması','IdeaFlow — платформа запуска продуктов','IdeaFlow — product launch platform'],
+  nav_menu:['Menyu','Меню','Menu'],
+  nav_overview:['İcmal','Обзор','Overview'],
+  nav_projects:['Layihələr','Проекты','Projects'],
+  nav_analytics:['Analitika','Аналитика','Analytics'],
+  nav_new:['Yeni ideya','Новая идея','New idea'],
+  nav_investors:['İnvestorlar','Инвесторы','Investors'],
+  nav_makers:['İstehsalçılar','Производители','Manufacturers'],
+  nav_pricing:['Tariflər və maliyyə modeli','Тарифы и финмодель','Pricing & finance'],
+  nav_trust:['Etibar','Доверие','Trust'],
+  nav_trustIndex:['Trust Index · İM müdafiəsi','Trust Index · Защита ИС','Trust Index · IP protection'],
+  top_loggedAs:['Daxil olmusunuz:','Вы вошли как','Logged in as'],
+  top_notifs:['Bildirişlər','Уведомления','Notifications'],
+  top_tour:['Tur','Тур','Tour'],
+  top_theme:['Görünüş','Тема','Theme'],
+  top_lang:['Dil','Язык','Language'],
+
+  /* --- rollar --- */
+  role_guest:['Qonaq','Гость','Guest'],
+  role_author:['İdeya müəllifi','Автор идеи','Idea Author'],
+  role_maker:['İstehsal','Производство','Manufacturing'],
+  role_investor:['İnvestor','Инвестор','Investor'],
+  role_seller:['Satıcı','Продавец','Seller'],
+  rd_author:['İdeya dərc edirəm','Публикую идею','I publish ideas'],
+  rd_maker:['Partiya istehsal edirəm','Произвожу партии','I manufacture batches'],
+  rd_investor:['Layihələri maliyyələşdirirəm','Финансирую проекты','I fund projects'],
+  rd_seller:['Mal satıram','Продаю товары','I sell products'],
+
+  /* --- statuslar --- */
+  st_draft:['Qaralama','Черновик','Draft'],
+  st_assess:['Qiymətləndirmədə','На оценке','Under review'],
+  st_demand:['Tələb yoxlanışı','Проверка спроса','Demand check'],
+  st_findmaker:['İstehsalçı axtarışı','Поиск производителя','Finding maker'],
+  st_findinv:['İnvestisiya axtarışı','Поиск инвестиций','Seeking funding'],
+  st_deal:['Sövdələşmə','Сделка','Deal'],
+  st_prod:['İstehsal','Производство','Production'],
+  st_sales:['Satış','Продажи','Sales'],
+
+  /* --- kateqoriyalar --- */
+  cat_all:['Hamısı','Все','All'],
+  cat_electronics:['Elektronika','Электроника','Electronics'],
+  cat_home:['Ev və məişət','Дом и быт','Home & living'],
+  cat_sport:['İdman','Спорт','Sport'],
+  cat_gadgets:['Qadcetlər','Гаджеты','Gadgets'],
+  cat_eco:['Eko','Эко','Eco'],
+
+  /* --- lendinq --- */
+  l_pill:['Məhsul yaradanlar üçün platforma','Платформа для создателей продуктов','A platform for product creators'],
+  l_h1a:['İdeyanı','Превратите идею в','Turn your idea into'],
+  l_h1b:['hazır məhsula çevirin','готовый продукт','a finished product'],
+  l_sub:['İdeyanın qiymətləndirilməsi, tələbin yoxlanışı, istehsalçı, investor və təhlükəsiz sövdələşmə — hamısı bir yerdə.','Оценка идеи, проверка спроса, производитель, инвестор и безопасная сделка — в одном месте.','Idea assessment, demand check, manufacturer, investor and a safe deal — all in one place.'],
+  l_cta:['Demoya keç →','Войти в демо →','Enter demo →'],
+  l_enterTitle:['İştirakçı kimi daxil olun','Войдите как участник','Enter as a participant'],
+  l_enterSub:['Demo rejimi: rol seçin və platformanı içəridən sınayın.','Демо-режим: выберите роль и попробуйте платформу изнутри.','Demo mode: pick a role and try the platform from the inside.'],
+  l_note:['Frontend prototip · nümunə məlumatlar (brauzerin yaddaşında saxlanılır)','Фронтенд-прототип · данные демонстрационные (хранятся в памяти браузера)','Frontend prototype · demo data (kept in browser memory)'],
+
+  /* --- kabinetlər --- */
+  d_a_title:['Müəllif kabineti','Кабинет автора','Author workspace'],
+  d_a_sub:['Layihələriniz və iştirakçıların təklifləri','Ваши проекты и предложения от участников','Your projects and incoming offers'],
+  d_a_t1:['layihə','проектов','projects'],
+  d_a_t2:['orta reytinq','средний рейтинг','average rating'],
+  d_a_t3:['istehsalçı təklifi','офферов производителей','manufacturer offers'],
+  d_a_t4:['ilkin sifariş','предзаказов','preorders'],
+  d_a_my:['Mənim layihələrim','Мои проекты','My projects'],
+  d_m_title:['İstehsalçı kabineti','Кабинет производителя','Manufacturer workspace'],
+  d_m_sub:['Güclərinizə uyğun gələn sorğular','Входящие заявки под ваши мощности','Incoming requests matching your capacity'],
+  d_m_t1:['yeni sorğu','новых заявок','new requests'],
+  d_m_t2:['mənim təkliflərim','моих офферов','my offers'],
+  d_m_t3:['güc yüklənməsi','загрузка мощностей','capacity load'],
+  d_m_t4:['Trust Index','Trust Index','Trust Index'],
+  d_m_reqs:['İstehsal sorğuları','Заявки на производство','Production requests'],
+  d_m_empty:['Yeni sorğu yoxdur','Нет новых заявок','No new requests'],
+  d_i_title:['İnvestor kabineti','Кабинет инвестора','Investor workspace'],
+  d_i_sub:['Maliyyə axtaran yoxlanılmış layihələr','Проверенные проекты, ищущие финансирование','Vetted projects seeking funding'],
+  d_i_t1:['axtarışda olan layihə','проектов в поиске','projects seeking'],
+  d_i_t2:['portfeldə','в портфеле','in portfolio'],
+  d_i_t3:['yatırılıb','вложено','invested'],
+  d_i_t4:['gəlirlilik proqnozu','прогноз доходности','projected return'],
+  d_i_feed:['Layihə lenti','Лента проектов','Project feed'],
+  d_s_title:['Satıcı kabineti','Кабинет продавца','Seller workspace'],
+  d_s_sub:['Hazırlanan mallar — ilkin sifarişləri rezerv edin','Товары в подготовке — резервируйте предзаказы','Products in the pipeline — reserve preorders'],
+  d_s_t1:['hazırlanan mal','товаров в подготовке','products in pipeline'],
+  d_s_t2:['ümumi ilkin sifariş','предзаказов всего','preorders total'],
+  d_s_t3:['müqavilələrim','мои контракты','my contracts'],
+  d_s_t4:['qiymət aralığı','диапазон цен','price range'],
+  d_s_catalog:['Hazırlanan məhsullar kataloqu','Каталог готовящихся продуктов','Catalog of upcoming products'],
+  btn_newIdea:['＋ Yeni ideya','＋ Новая идея','＋ New idea'],
+
+  /* --- kataloq --- */
+  c_title:['Layihə kataloqu','Каталог проектов','Projects catalog'],
+  c_sub:['Ekosistemin bütün layihələri','Все проекты экосистемы','All ecosystem projects'],
+  c_search:['🔍 Ad və ya müəllif üzrə axtarış…','🔍 Поиск по названию или автору…','🔍 Search by title or author…'],
+  c_empty:['Heç nə tapılmadı','Ничего не найдено','Nothing found'],
+  c_notRated:['qiymətləndirilməyib','не оценён','not rated'],
+
+  /* --- layihə kartı --- */
+  p_back:['← kataloqa','← к каталогу','← back to catalog'],
+  p_author:['müəllif','автор','author'],
+  p_notFound:['Layihə tapılmadı','Проект не найден','Project not found'],
+  tab_about:['İcmal','Обзор','Overview'],
+  tab_ai:['AI qiymətləndirmə','AI-оценка','AI score'],
+  tab_fin:['Maliyyə modeli','Финмодель','Financials'],
+  tab_prod:['İstehsal','Производство','Production'],
+  tab_inv:['İnvestisiyalar','Инвестиции','Investment'],
+  tab_deal:['Sövdələşmə','Сделка','Deal'],
+  tab_docs:['Sənədlər','Документы','Documents'],
+  tab_chat:['Söhbət','Чат','Chat'],
+
+  ab_status:['Layihənin statusu','Статус проекта','Project status'],
+  ab_about:['Layihə haqqında','О проекте','About the project'],
+  ab_cat:['Kateqoriya','Категория','Category'],
+  ab_st:['Status','Статус','Status'],
+  ab_rating:['İdeyanın reytinqi','Рейтинг идеи','Idea rating'],
+  ab_preorders:['İlkin sifarişlər','Предзаказы','Preorders'],
+  ab_sections:['Kartın bölmələri','Разделы карточки','Card sections'],
+  ab_sectionsText:['Vahid rəqəmsal pasport: materiallar, bazar analitikası, maliyyə modeli, istehsal, investisiyalar, satış, sənədlər (NDA, patentlər), dəyişikliklər tarixçəsi. Bütün rollar eyni kartla işləyir.','Единый цифровой паспорт: материалы, аналитика рынка, финмодель, производство, инвестиции, продажи, документы (NDA, патенты), история изменений. Все роли работают с одной карточкой.','A single digital passport: materials, market analytics, financials, production, investment, sales, documents (NDA, patents), change history. Every role works with the same card.'],
+
+  tl_assess:['Qiymətləndirmə','Оценка','Assessment'],
+  tl_demand:['Tələb','Спрос','Demand'],
+  tl_findmaker:['İstehsalçı','Производитель','Manufacturer'],
+  tl_findinv:['İnvestisiya','Инвестиции','Investment'],
+  tl_deal:['Sövdələşmə','Сделка','Deal'],
+  tl_prod:['İstehsal','Производство','Production'],
+  tl_sales:['Satış','Продажи','Sales'],
+
+  /* --- AI --- */
+  ai_none:['AI qiymətləndirməsi hələ aparılmayıb','AI-оценка ещё не проведена','AI score not generated yet'],
+  ai_noneSub:['Bazar, maya dəyəri və risklərin analizini başladın.','Запустите анализ рынка, себестоимости и рисков.','Run the market, cost and risk analysis.'],
+  ai_run:['AI qiymətləndirməsini başlat','Запустить AI-оценку','Run AI assessment'],
+  ai_market:['Bazarın qiymətləndirilməsi','Оценка рынка','Market assessment'],
+  ai_size:['Bazarın həcmi','Размер рынка','Market size'],
+  ai_cost:['Təxmini maya dəyəri','Ориент. себестоимость','Est. unit cost'],
+  ai_price:['Tövsiyə olunan qiymət','Рекоменд. цена','Recommended price'],
+  ai_rating:['İdeyanın reytinqi','Рейтинг идеи','Idea rating'],
+  ai_risks:['Risklər və tövsiyələr','Риски и рекомендации','Risks & recommendations'],
+  ai_r1a:['✔ Tələb «','✔ Спрос подтверждается трендом категории «','✔ Demand is confirmed by the trend in the «'],
+  ai_r1b:['» kateqoriyasının trendi ilə təsdiqlənir.','».','» category.'],
+  ai_r2:['⚠ Hədəf bazar üçün sertifikasiyanı yoxlayın.','⚠ Проверьте сертификацию для целевого рынка.','⚠ Check certification for the target market.'],
+  ai_r3:['✔ Maya dəyəri marja imkanı verir:','✔ Себестоимость позволяет маржу','✔ Unit cost allows a margin of'],
+  ai_toDemand:['Tələb yoxlanışına keç →','Перейти к проверке спроса →','Go to demand check →'],
+
+  /* --- maliyyə --- */
+  f_title:['Maliyyə modeli','Финансовая модель','Financial model'],
+  f_cost:['Maya dəyəri','Себестоимость','Unit cost'],
+  f_price:['Satış qiyməti','Цена продажи','Sale price'],
+  f_moq:['MOQ (min. partiya)','MOQ (мин. партия)','MOQ (min. batch)'],
+  f_royalty:['Müəllifə royalti','Роялти автору','Author royalty'],
+  f_split:['Satış gəlirinin bölgüsü','Распределение выручки с продаж','Sales revenue split'],
+  f_rest:['qalan','ост.','rest'],
+  f_note:['Platforma → müəllifə royalti → investorun payı → satıcı. Eskrou avtomatik bölüşdürür.','Платформа → роялти автору → доля инвестора → продавец. Эскроу распределяет автоматически.','Platform → author royalty → investor share → seller. Escrow distributes automatically.'],
+
+  /* --- istehsal --- */
+  pr_offers:['İstehsalçı təklifləri','Предложения производителей','Manufacturer offers'],
+  pr_empty:['Hələlik təklif yoxdur','Пока нет офферов','No offers yet'],
+  pr_accept:['Qəbul et','Принять','Accept'],
+  pr_sendTitle:['Təklif göndər','Отправить оффер','Send an offer'],
+  pr_send:['Təklifi göndər','Отправить оффер','Send offer'],
+  pr_priceLbl:['Vahidin qiyməti','Цена за ед.','Price per unit'],
+  pr_moqLbl:['MOQ','MOQ','MOQ'],
+  pr_daysLbl:['Müddət, gün','Срок, дней','Lead time, days'],
+  pr_pcs:['əd.','шт.','pcs'],
+  pr_price:['Qiymət','Цена','Price'],
+  pr_days:['gün','дн.','days'],
+  pr_yourFactory:['Sizin zavod','Ваш завод','Your factory'],
+
+  /* --- investisiya --- */
+  iv_title:['İnvestisiyalar','Инвестиции','Investment'],
+  iv_empty:['Hələlik investisiya yoxdur','Инвестиций пока нет','No investments yet'],
+  iv_inDeal:['sövdələşmədə','в сделке','in deal'],
+  iv_formTitle:['Layihəyə investisiya qoy','Инвестировать в проект','Invest in the project'],
+  iv_amount:['Məbləğ','Сумма','Amount'],
+  iv_typeLbl:['Sövdələşmə növü','Тип сделки','Deal type'],
+  iv_equity:['Pay (equity)','Доля (equity)','Equity'],
+  iv_royalty:['Royalti','Роялти','Royalty'],
+  iv_fix:['Fiks / lisenziya','Фикс / лицензия','Fixed / licence'],
+  iv_submit:['İnvestisiyanı rəsmiləşdir','Оформить инвестицию','Complete investment'],
+  iv_you:['Siz (investor)','Вы (инвестор)','You (investor)'],
+  iv_share30:['Pay 30%','Доля 30%','30% equity'],
+
+  /* --- sövdələşmə --- */
+  dl_title:['Rəqəmsal sövdələşmə','Цифровая сделка','Digital deal'],
+  dl_maker:['İstehsalçı','Производитель','Manufacturer'],
+  dl_investor:['İnvestor','Инвестор','Investor'],
+  dl_cond:['Şərt','Условие','Terms'],
+  dl_escrow:['Eskrou','Эскроу','Escrow'],
+  dl_escrowV:['vəsait rezerv edilib','средства зарезервированы','funds reserved'],
+  dl_rights:['İdeya hüquqları','Права на идею','Idea rights'],
+  dl_rightsV:['müəllifə aiddir','закреплены за автором','held by the author'],
+  dl_sign:['İmzala və istehsalı başlat','Подписать и запустить производство','Sign and start production'],
+  dl_signed:['✔ Sövdələşmə imzalandı, layihə istehsal/satış mərhələsindədir.','✔ Сделка подписана, проект в производстве/продажах.','✔ Deal signed, the project is in production/sales.'],
+  dl_need:['Sövdələşmə üçün istehsalçı təklifi və investisiya lazımdır.','Для сделки нужны оффер производителя и инвестиция.','A manufacturer offer and an investment are required for the deal.'],
+
+  /* --- sənədlər --- */
+  dc_title:['Sənədlər','Документы','Documents'],
+  dc_upload:['＋ Yüklə','＋ Загрузить','＋ Upload'],
+  dc_open:['Aç','Открыть','Open'],
+  dc_note:['🛡 Bütün sənədlər versiyalanır, müəlliflik və tarix qeydə alınır (İM müdafiəsi).','🛡 Все документы версионируются, авторство и дата фиксируются (защита ИС).','🛡 All documents are versioned; authorship and date are recorded (IP protection).'],
+  dt_nda:['NDA','NDA','NDA'],
+  dt_patent:['Patent','Патент','Patent'],
+  dt_contract:['Müqavilə','Контракт','Contract'],
+  dt_cert:['Sertifikat','Сертификат','Certificate'],
+  dn_nda:['Məxfilik sazişi.pdf','Соглашение о неразглашении.pdf','Non-disclosure agreement.pdf'],
+  dn_passport:['Layihə kartı (pasport).pdf','Карточка проекта (паспорт).pdf','Project card (passport).pdf'],
+  dn_cert:['Uyğunluq sertifikatı.pdf','Сертификат соответствия.pdf','Certificate of conformity.pdf'],
+
+  /* --- söhbət --- */
+  ch_title:['İştirakçıların söhbəti','Чат участников','Participant chat'],
+  ch_ph:['Mesaj yazın…','Написать сообщение…','Write a message…'],
+  ch_send:['Göndər','Отправить','Send'],
+  ch_curator:['Kurator','Куратор','Curator'],
+  ch_you:['Siz','Вы','You'],
+  cm_curator:['Layihə işlənir. Şərtləri və sualları burada müzakirə edin.','Проект в работе. Обсуждайте условия и вопросы здесь.','The project is in progress. Discuss terms and questions here.'],
+  cm_author:['Məhsulla bağlı suallara cavab verməyə hazıram.','Готов ответить на вопросы по продукту.','Happy to answer any questions about the product.'],
+
+  /* --- yeni ideya --- */
+  n_title:['Yeni ideya','Новая идея','New idea'],
+  n_sub:['Məhsulu təsvir edin — layihə kartı yaradılacaq','Опишите продукт — создастся карточка проекта','Describe the product — a project card will be created'],
+  n_name:['Məhsulun adı','Название продукта','Product name'],
+  n_namePh:['Məs. Bitkilər üçün ağıllı dozator','Напр. Умный дозатор для растений','E.g. Smart plant dispenser'],
+  n_cat:['Kateqoriya','Категория','Category'],
+  n_desc:['Təsvir','Описание','Description'],
+  n_descPh:['Bu nədir, kim üçündür, analoqlardan nə ilə üstündür','Что это, для кого, чем лучше аналогов','What it is, who it is for, why it beats alternatives'],
+  n_price:['Təxmini satış qiyməti','Ориентировочная цена продажи','Estimated sale price'],
+  n_create:['Layihə yarat →','Создать проект →','Create project →'],
+  n_needName:['Adı daxil edin','Введите название','Enter a title'],
+  n_youAuthor:['Siz (müəllif)','Вы (автор)','You (author)'],
+
+  /* --- istehsalçılar / investorlar --- */
+  mk_title:['İstehsalçılar','Производители','Manufacturers'],
+  mk_sub:['Yoxlanılmış zavodlar','Верифицированные заводы','Verified factories'],
+  mk_cats:['Kateqoriyalar','Категории','Categories'],
+  mk_moq:['MOQ-dan','MOQ от','MOQ from'],
+  in_title:['İnvestorlar','Инвесторы','Investors'],
+  in_sub:['Platformadakı fondlar və mələk investorlar','Фонды и ангелы на платформе','Funds and angels on the platform'],
+
+  /* --- tariflər --- */
+  pc_title:['Tariflər və maliyyə modeli','Тарифы и финмодель','Pricing & finance model'],
+  pc_sub:['Platforma necə qazanır','Как зарабатывает платформа','How the platform earns'],
+  pc_rev:['Platformanın gəliri','Доход платформы','Platform revenue'],
+  pc_c1:['Komissiya — istehsal','Комиссия — производство','Commission — production'],
+  pc_c2:['Komissiya — investisiya','Комиссия — инвестиции','Commission — investment'],
+  pc_c3:['Komissiya — satış','Комиссия — продажи','Commission — sales'],
+  pc_c4:['Eskrou / ödənişlər','Эскроу / платежи','Escrow / payments'],
+  pc_c5:['Tərəfdaş xidmətləri','Партнёрские услуги','Partner services'],
+  pc_subs:['Peşəkarlar üçün abunə (aylıq)','Подписка для профи (в месяц)','Pro subscription (per month)'],
+  pc_authorPro:['Müəllif Pro','Автор Pro','Author Pro'],
+  pc_wf:['Gəlirin bölgüsü (waterfall)','Распределение выручки (waterfall)','Revenue split (waterfall)'],
+  pc_wfNote:['Platforma → müəllifə royalti → investorun payı → satıcı. Müəllif birinci qorunur.','Платформа → роялти автору → доля инвестора → продавец. Автор защищён первым.','Platform → author royalty → investor share → seller. The author is protected first.'],
+
+  /* --- analitika --- */
+  an_title:['Platforma analitikası','Аналитика платформы','Platform analytics'],
+  an_sub:['Ekosistemin nümunə göstəriciləri','Демонстрационные показатели экосистемы','Demo ecosystem metrics'],
+  an_t1:['layihə','проектов','projects'],
+  an_t2:['sövdələşmələrin GMV-si','GMV сделок','deal GMV'],
+  an_t3:['uğurlu sövdələşmə','успешных сделок','successful deals'],
+  an_t4:['orta reytinq','средний рейтинг','average rating'],
+  an_funnel:['Layihə hunisi','Воронка проектов','Project funnel'],
+  an_funnelSub:['İdeyadan satışa qədər','От идеи до продаж','From idea to sales'],
+  an_fn1:['İdeyalar','Идеи','Ideas'],
+  an_fn2:['AI qiymətləndirmədən keçib','AI-оценка пройдена','AI score passed'],
+  an_fn3:['Tələb təsdiqlənib','Спрос подтверждён','Demand confirmed'],
+  an_fn4:['İstehsalçı tapılıb','Производитель найден','Manufacturer found'],
+  an_fn5:['Maliyyələşdirilib','Профинансировано','Funded'],
+  an_fn6:['İstehsal olunub','Произведено','Manufactured'],
+  an_fn7:['Satış','Продажи','Sales'],
+  an_cats:['Kateqoriyalar üzrə layihələr','Проекты по категориям','Projects by category'],
+  an_catsSub:['Aktiv layihələr','Активные проекты','Active projects'],
+  an_deals:['Aylar üzrə yeni sövdələşmələr','Новые сделки по месяцам','New deals by month'],
+  an_dealsSub:['Bağlanmış sövdələşmələrin artımı','Рост числа закрытых сделок','Growth of closed deals'],
+
+  /* --- tur --- */
+  b_next:['Növbəti','Далее','Next'],
+  b_done:['Hazırdır','Готово','Done'],
+  b_skip:['Keç','Пропустить','Skip'],
+
+  /* --- toast bildirişləri --- */
+  ts_ai:['AI qiymətləndirməsi hazırdır: reytinq ','AI-оценка готова: рейтинг ','AI score ready: rating '],
+  ts_demand:['Status: tələb yoxlanışı','Статус: проверка спроса','Status: demand check'],
+  ts_offer:['Təklif müəllifə göndərildi','Оффер отправлен автору','Offer sent to the author'],
+  ts_accept:['Təklif qəbul edildi · investisiya axtarırıq','Оффер принят · ищем инвестиции','Offer accepted · seeking funding'],
+  ts_invest:['İnvestisiya rəsmiləşdirildi · sövdələşmə formalaşır','Инвестиция оформлена · формируется сделка','Investment completed · deal is being formed'],
+  ts_signed:['Sövdələşmə imzalandı · istehsal başladı','Сделка подписана · производство запущено','Deal signed · production started'],
+  ts_batch:['Partiya istehsal olundu · satış başladı','Партия произведена · старт продаж','Batch manufactured · sales started'],
+  ts_created:['Layihə yaradıldı · AI qiymətləndirməsini başladın','Проект создан · запустите AI-оценку','Project created · run the AI assessment'],
+  ts_docUp:['Sənədin yüklənməsi (demo)','Загрузка документа (демо)','Document upload (demo)'],
+  ts_docOpen:['Sənədin açılması (demo)','Открытие документа (демо)','Opening document (demo)'],
+
+  /* --- bildirişlər --- */
+  nf1:['EcoFab-dan «Qatlanan eko-bel çantası» üzrə yeni təklif','Новый оффер от EcoFab по «Складной эко-рюкзак»','New offer from EcoFab on “Foldable eco backpack”'],
+  nf2:['North VC investoru layihənizlə maraqlandı','Инвестор North VC заинтересовался вашим проектом','Investor North VC is interested in your project'],
+  nf3:['AI qiymətləndirməsi hazırdır: reytinq 88','AI-оценка готова: рейтинг 88','AI score ready: rating 88'],
+  nft1:['2 dəq əvvəl','2 мин назад','2 min ago'],
+  nft2:['1 saat əvvəl','1 ч назад','1 h ago'],
+  nft3:['bu gün','сегодня','today'],
+};
+
+function li(){const i=LI[S.lang];return i===undefined?0:i;}
+function t(k){const v=DICT[k];return v?(v[li()]||v[0]):k;}
+/* çoxdilli data dəyəri: ['az','ru','en'] massivi və ya adi sətir */
+function tv(v){return Array.isArray(v)?(v[li()]||v[0]):v;}
+function cycleLang(){S.lang=LANGS[(LANGS.indexOf(S.lang)+1)%LANGS.length];render();}
+function rl(r){return t('role_'+r);}
+function sl(st){return t('st_'+st);}
+function catL(c){return t('cat_'+c);}
+
+/* ---------------- STORE ---------------- */
+const ROLES = {
+  guest:  {color:'var(--platform)'},
+  author: {color:'var(--author)', emoji:'💡'},
+  maker:  {color:'var(--maker)', emoji:'🏭'},
+  investor:{color:'var(--investor)', emoji:'📈'},
+  seller: {color:'var(--seller)', emoji:'🛒'},
+};
+const STATUS = {
+  draft:{c:'#8A8A8A'}, assess:{c:'#C9A227'}, demand:{c:'#0E7C66'}, findmaker:{c:'#C07A2C'},
+  findinv:{c:'#2E86C1'}, deal:{c:'#1F5E8C'}, prod:{c:'#7A5AA6'}, sales:{c:'#0E7C66'},
+};
+const CATS = ['electronics','home','sport','gadgets','eco'];
+const COVERS = {electronics:['#EAF1F6','🔌'],home:['#F1EEE9','🏠'],sport:['#EAF6F2','🏅'],gadgets:['#F0ECF6','📱'],eco:['#EDF6EC','🌱']};
+const MARKETS=[['$800 mln','$800 млн','$800M'],['$1.2 mlrd','$1.2 млрд','$1.2B'],['$2.1 mlrd','$2.1 млрд','$2.1B'],['$540 mln','$540 млн','$540M']];
+const MONTHS=[['Fev','Фев','Feb'],['Mar','Мар','Mar'],['Apr','Апр','Apr'],['May','Май','May'],['İyn','Июн','Jun'],['İyl','Июл','Jul']];
+
+const S = {
+  role:'guest',
+  tab:'about',
+  filterCat:'all',
+  projects:[
+    {id:1,title:['Qatlanan eko-bel çantası','Складной эко-рюкзак','Foldable eco backpack'],cat:'eco',emoji:'🎒',author:['Anna K.','Анна К.','Anna K.'],status:'findinv',rating:82,market:MARKETS[1],cost:'$14',price:'$49',moq:'500',royalty:8,demand:340,
+      offers:[{maker:'EcoFab',price:'$13.5',moq:'500',days:'35',trust:88}], investments:[]},
+    {id:2,title:['Hidro-trekerli ağıllı butulka','Умная бутылка с гидро-трекером','Smart bottle with hydro tracker'],cat:'gadgets',emoji:'💧',author:['Dmitri V.','Дмитрий В.','Dmitri V.'],status:'findmaker',rating:76,market:MARKETS[0],cost:'$9',price:'$39',moq:'1000',royalty:7,demand:210,
+      offers:[], investments:[]},
+    {id:3,title:['Modul mətbəx orqanayzeri','Модульный кухонный органайзер','Modular kitchen organizer'],cat:'home',emoji:'🍽️',author:['Marina L.','Марина Л.','Marina L.'],status:'sales',rating:88,market:MARKETS[2],cost:'$6',price:'$29',moq:'2000',royalty:10,demand:1250,
+      offers:[{maker:'HomePro',price:'$5.8',moq:'2000',days:'40',trust:91}], investments:[{investor:'North VC',amount:'$60 000',typeK:'iv_share30'}]},
+    {id:4,title:['Portativ günəş enerjili şarj cihazı','Портативная солнечная зарядка','Portable solar charger'],cat:'electronics',emoji:'🔋',author:['Timur A.','Тимур А.','Timur A.'],status:'assess',rating:0,market:'—',cost:'—',price:'$59',moq:'—',royalty:8,demand:0,
+      offers:[], investments:[]},
+  ],
+  makers:[
+    {name:'EcoFab',cats:['Eko, Ev','Эко, Дом','Eco, Home'],moq:'500',trust:88},
+    {name:'HomePro',cats:['Ev və məişət','Дом и быт','Home & living'],moq:'2000',trust:91},
+    {name:'TechLine',cats:['Elektronika, Qadcetlər','Электроника, Гаджеты','Electronics, Gadgets'],moq:'1000',trust:84},
+  ],
+  investors:[
+    {name:'North VC',focus:['Hardware, erkən mərhələ','Hardware, ранняя стадия','Hardware, early stage'],trust:90},
+    {name:'GreenSeed',focus:['Eko-məhsullar','Эко-продукты','Eco products'],trust:86},
+    {name:'Angel Pool',focus:['İstehlak malları','Потребительские товары','Consumer goods'],trust:79},
+  ],
+  notifs:3,
+  nextId:5,
+  theme:'light', showN:false, search:'', lang:'az', onboarded:false, tour:0,
+  notifList:[{k:'nf1',tk:'nft1'},{k:'nf2',tk:'nft2'},{k:'nf3',tk:'nft3'}],
+};
+const DOCTYPES={nda:'#42607A',patent:'#7A5AA6',contract:'#1F5E8C',cert:'#0E7C66'};
+function defaultDocs(p){return p.docs||(p.docs=[{k:'dn_nda',t:'nda'},{k:'dn_passport',t:'contract'},...(p.status==='sales'||p.status==='prod'?[{k:'dn_cert',t:'cert'}]:[])]);}
+function defaultMsgs(p){return p.messages||(p.messages=[{whoK:'ch_curator',me:false,textK:'cm_curator'},{who:p.author,me:false,textK:'cm_author'}]);}
+function authorName(p){return p.authorK?t(p.authorK):tv(p.author);}
+
+/* ---------------- HELPERS ---------------- */
+const $=(s)=>document.querySelector(s);
+function go(h){location.hash=h;}
+function badge(st){const s=STATUS[st];return `<span class="badge" style="background:${s.c}1f;color:${s.c}">${sl(st)}</span>`;}
+function stars(r){if(!r)return `<span class="muted">${t('c_notRated')}</span>`;const f=Math.round(r/20);return `<span class="rating"><span class="s">${'★'.repeat(f)}${'☆'.repeat(5-f)}</span> ${r}</span>`;}
+function toast(msg,ok=true){const el=document.createElement('div');el.className='toast'+(ok?' ok':'');el.textContent=msg;$('#toasts').appendChild(el);setTimeout(()=>el.remove(),3200);}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function P(id){return S.projects.find(p=>p.id==id);}
+
+/* ---------------- ROUTER ---------------- */
+window.addEventListener('hashchange',render);
+window.addEventListener('load',render);
+function render(){
+  document.documentElement.lang=S.lang;
+  document.title=t('appTitle');
+  const h=location.hash||'#/';
+  if(h==='#/'||h===''){ $('#app').innerHTML=landing(); return; }
+  const m=h.match(/^#\/project\/(\d+)/);
+  if(m){ shell(projectView(P(m[1]))); return; }
+  if(h.startsWith('#/projects')){ shell(projectsView()); return; }
+  if(h.startsWith('#/new')){ shell(newView()); return; }
+  if(h.startsWith('#/makers')){ shell(makersView()); return; }
+  if(h.startsWith('#/investors')){ shell(investorsView()); return; }
+  if(h.startsWith('#/pricing')){ shell(pricingView()); return; }
+  if(h.startsWith('#/analytics')){ shell(analyticsView()); return; }
+  if(h.startsWith('#/app')){ shell(dashboardView()); return; }
+  $('#app').innerHTML=landing();
+}
+
+/* ---------------- LANDING ---------------- */
+function landing(){
+  return `
+  <div style="position:absolute;top:16px;right:20px;z-index:5"><button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#EAF1F6" onclick="cycleLang()" title="${t('top_lang')}">${S.lang.toUpperCase()}</button></div>
+  <div class="hero">
+    <span class="pill">${t('l_pill')}</span>
+    <h1>${t('l_h1a')} <span class="g">${t('l_h1b')}</span></h1>
+    <p>${t('l_sub')}</p>
+    <div><button class="btn btn-primary" onclick="document.getElementById('enter').scrollIntoView({behavior:'smooth'})">${t('l_cta')}</button></div>
+  </div>
+  <div class="enter" id="enter">
+    <div class="enterCard">
+      <h2 style="font-size:22px;font-weight:840">${t('l_enterTitle')}</h2>
+      <p class="muted" style="margin-top:6px">${t('l_enterSub')}</p>
+      <div class="roles">
+        ${['author','maker','investor','seller'].map(r=>`
+          <button class="rbtn" style="--c:${ROLES[r].color}" onclick="setRole('${r}')">
+            <div class="ic">${ROLES[r].emoji}</div>
+            <h4>${rl(r)}</h4>
+            <p>${t('rd_'+r)}</p>
+          </button>`).join('')}
+      </div>
+      <p class="foot-note">${t('l_note')}</p>
+    </div>
+  </div>`;
+}
+function setRole(r){S.role=r;S.showN=false;go('#/app');if(!S.onboarded){S.tour=1;setTimeout(render,60);}}
+
+/* ---------------- SHELL (sidebar+topbar) ---------------- */
+function nav(){
+  const items=[['#/app','nav_overview','▦'],['#/projects','nav_projects','▤'],['#/analytics','nav_analytics','📊']];
+  if(S.role==='author') items.push(['#/new','nav_new','＋']);
+  if(S.role==='investor') items.push(['#/investors','nav_investors','◆']);
+  if(S.role==='maker') items.push(['#/makers','nav_makers','◆']);
+  items.push(['#/pricing','nav_pricing','₮']);
+  const h=location.hash;
+  return items.map(([href,k,i])=>`<a href="${href}" class="${h.startsWith(href)&&(href!=='#/app'||h.startsWith('#/app'))?'on':''}"><span class="i">${i}</span>${t(k)}</a>`).join('');
+}
+function shell(inner){
+  $('#app').innerHTML=`
+  <div class="topbar">
+    <a class="logo" href="#/"><span class="m"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.6.6 1 1.2 1 2h6c0-.8.4-1.4 1-2a6 6 0 0 0-4-10Z"/></svg></span>IdeaFlow</a>
+    <div class="spacer"></div>
+    <div class="roleSel">${t('top_loggedAs')}
+      <select onchange="S.role=this.value;render()">
+        ${Object.keys(ROLES).filter(r=>r!=='guest').map(r=>`<option value="${r}" ${S.role===r?'selected':''}>${ROLES[r].emoji} ${rl(r)}</option>`).join('')}
+      </select>
+    </div>
+    <button class="ticon" onclick="cycleLang()" title="${t('top_lang')}" style="font-size:12px;font-weight:800">${S.lang.toUpperCase()}</button>
+    <button class="ticon" onclick="startTour()" title="${t('top_tour')}">?</button>
+    <button class="ticon" onclick="toggleTheme()" title="${t('top_theme')}">${S.theme==='dark'?'☀️':'🌙'}</button>
+    <button class="bell" onclick="toggleNotifs()">🔔<span class="cnt">${S.notifs}</span></button>
+    ${S.showN?`<div class="ndrop"><div class="nh">${t('top_notifs')}</div>${S.notifList.map(n=>`<div class="ni">${t(n.k)}<div class="tm">${t(n.tk)}</div></div>`).join('')}</div>`:''}
+  </div>
+  <div class="layout">
+    <div class="side">
+      <div class="grp">${t('nav_menu')}</div>
+      ${nav()}
+      <div class="grp">${t('nav_trust')}</div>
+      <a href="#/pricing"><span class="i">🛡</span>${t('nav_trustIndex')}</a>
+    </div>
+    <div class="content">${inner}</div>
+  </div>
+  ${S.tour?tourOverlay():''}`;
+}
+
+/* ---------------- DASHBOARD ---------------- */
+function dashboardView(){
+  const r=S.role;
+  if(r==='author'){
+    const mine=S.projects; // demo: bütün ekosistem müəllifin gözü ilə göstərilir
+    return `
+    <div class="page-h"><div><h1>${t('d_a_title')}</h1><p>${t('d_a_sub')}</p></div>
+      <a class="btn btn-primary" href="#/new">${t('btn_newIdea')}</a></div>
+    <div class="tiles">
+      <div class="tile"><div class="v">${mine.length}</div><div class="k">${t('d_a_t1')}</div></div>
+      <div class="tile"><div class="v">${Math.round(mine.filter(p=>p.rating).reduce((a,p)=>a+p.rating,0)/Math.max(1,mine.filter(p=>p.rating).length))||'—'}</div><div class="k">${t('d_a_t2')}</div></div>
+      <div class="tile"><div class="v">${mine.reduce((a,p)=>a+p.offers.length,0)}</div><div class="k">${t('d_a_t3')}</div></div>
+      <div class="tile"><div class="v">${mine.reduce((a,p)=>a+p.demand,0)}</div><div class="k">${t('d_a_t4')}</div></div>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px">${t('d_a_my')}</h3>
+    <div class="grid g3">${mine.map(pcard).join('')}</div>`;
+  }
+  if(r==='maker'){
+    const req=S.projects.filter(p=>['findmaker','demand'].includes(p.status));
+    return `
+    <div class="page-h"><div><h1>${t('d_m_title')}</h1><p>${t('d_m_sub')}</p></div></div>
+    <div class="tiles">
+      <div class="tile"><div class="v">${req.length}</div><div class="k">${t('d_m_t1')}</div></div>
+      <div class="tile"><div class="v">${S.projects.reduce((a,p)=>a+p.offers.filter(o=>o.maker==='EcoFab'||o.maker==='HomePro').length,0)}</div><div class="k">${t('d_m_t2')}</div></div>
+      <div class="tile"><div class="v">72%</div><div class="k">${t('d_m_t3')}</div></div>
+      <div class="tile"><div class="v">88</div><div class="k">${t('d_m_t4')}</div></div>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px">${t('d_m_reqs')}</h3>
+    <div class="grid g3">${req.length?req.map(pcard).join(''):`<div class="empty">${t('d_m_empty')}</div>`}</div>`;
+  }
+  if(r==='investor'){
+    const feed=S.projects.filter(p=>['findinv','findmaker'].includes(p.status));
+    const port=S.projects.filter(p=>p.investments.length);
+    return `
+    <div class="page-h"><div><h1>${t('d_i_title')}</h1><p>${t('d_i_sub')}</p></div></div>
+    <div class="tiles">
+      <div class="tile"><div class="v">${feed.length}</div><div class="k">${t('d_i_t1')}</div></div>
+      <div class="tile"><div class="v">${port.length}</div><div class="k">${t('d_i_t2')}</div></div>
+      <div class="tile"><div class="v">$60k</div><div class="k">${t('d_i_t3')}</div></div>
+      <div class="tile"><div class="v">+18%</div><div class="k">${t('d_i_t4')}</div></div>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px">${t('d_i_feed')}</h3>
+    <div class="grid g3">${feed.map(pcard).join('')}</div>`;
+  }
+  // seller
+  const cat=S.projects.filter(p=>['demand','findmaker','findinv','deal','prod','sales'].includes(p.status));
+  return `
+  <div class="page-h"><div><h1>${t('d_s_title')}</h1><p>${t('d_s_sub')}</p></div></div>
+  <div class="tiles">
+    <div class="tile"><div class="v">${cat.length}</div><div class="k">${t('d_s_t1')}</div></div>
+    <div class="tile"><div class="v">${cat.reduce((a,p)=>a+p.demand,0)}</div><div class="k">${t('d_s_t2')}</div></div>
+    <div class="tile"><div class="v">3</div><div class="k">${t('d_s_t3')}</div></div>
+    <div class="tile"><div class="v">$29–59</div><div class="k">${t('d_s_t4')}</div></div>
+  </div>
+  <h3 style="margin-bottom:12px;font-size:16px">${t('d_s_catalog')}</h3>
+  <div class="grid g3">${cat.map(pcard).join('')}</div>`;
+}
+
+/* ---------------- PROJECT CARD (grid item) ---------------- */
+function pcard(p){
+  const cov=COVERS[p.cat]||['#EEE','📦'];
+  return `<div class="pcard" onclick="go('#/project/${p.id}')">
+    <div class="cover" style="background:${cov[0]}">${p.emoji||cov[1]}</div>
+    <div class="pb">
+      <h4>${esc(tv(p.title))}</h4>
+      <div class="meta">${catL(p.cat)} · ${esc(authorName(p))}</div>
+      <div class="foot">${badge(p.status)} ${stars(p.rating)}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- PROJECTS LIST ---------------- */
+function projectsView(){
+  const cats=['all',...CATS];
+  return `
+  <div class="page-h"><div><h1>${t('c_title')}</h1><p>${t('c_sub')}</p></div>
+    ${S.role==='author'?`<a class="btn btn-primary" href="#/new">${t('btn_newIdea')}</a>`:''}</div>
+  <div class="searchbar"><input id="q" placeholder="${t('c_search')}" value="${esc(S.search)}" oninput="S.search=this.value;document.getElementById('plist').innerHTML=catalogItems()"></div>
+  <div class="filters">${cats.map(c=>`<button class="chipf ${S.filterCat===c?'on':''}" onclick="S.filterCat='${c}';render()">${catL(c)}</button>`).join('')}</div>
+  <div class="grid g3" id="plist">${catalogItems()}</div>`;
+}
+
+/* ---------------- PROJECT VIEW ---------------- */
+function projectView(p){
+  if(!p) return `<div class="empty">${t('p_notFound')}</div>`;
+  const cov=COVERS[p.cat]||['#EEE','📦'];
+  const tabs=['about','ai','fin','prod','inv','deal','docs','chat'];
+  return `
+  <a class="muted" href="#/projects" style="font-size:13px">${t('p_back')}</a>
+  <div class="phead" style="margin-top:12px">
+    <div class="ic" style="background:${cov[0]}">${p.emoji||cov[1]}</div>
+    <div style="flex:1">
+      <h1 style="font-size:24px;font-weight:840">${esc(tv(p.title))}</h1>
+      <p class="muted" style="font-size:14px;margin-top:3px">${catL(p.cat)} · ${t('p_author')} ${esc(authorName(p))}</p>
+      <div style="margin-top:8px;display:flex;gap:10px;align-items:center">${badge(p.status)} ${stars(p.rating)}</div>
+    </div>
+  </div>
+  <div class="tabs">${tabs.map(k=>`<button class="${S.tab===k?'on':''}" onclick="S.tab='${k}';render()">${t('tab_'+k)}</button>`).join('')}</div>
+  <div>${projectTab(p)}</div>`;
+}
+function projectTab(p){
+  const tb=S.tab;
+  if(tb==='about') return `
+    <div class="card" style="margin-bottom:14px"><h3>${t('ab_status')}</h3>${timeline(p)}</div>
+    <div class="grid g2">
+      <div class="card"><h3>${t('ab_about')}</h3>
+        <div class="kv"><span>${t('ab_cat')}</span><b>${catL(p.cat)}</b></div>
+        <div class="kv"><span>${t('ab_st')}</span><b>${sl(p.status)}</b></div>
+        <div class="kv"><span>${t('ab_rating')}</span><b>${p.rating||'—'}</b></div>
+        <div class="kv"><span>${t('ab_preorders')}</span><b>${p.demand}</b></div>
+      </div>
+      <div class="card"><h3>${t('ab_sections')}</h3>
+        <p class="muted" style="font-size:13.5px">${t('ab_sectionsText')}</p>
+      </div>
+    </div>`;
+  if(tb==='ai'){
+    if(!p.rating) return `<div class="card"><h3>${t('ai_none')}</h3><p class="muted" style="font-size:13.5px;margin:8px 0 14px">${t('ai_noneSub')}</p><button class="btn btn-primary" onclick="runAI(${p.id})">${t('ai_run')}</button></div>`;
+    return `<div class="grid g2">
+      <div class="card"><h3>${t('ai_market')}</h3>
+        <div class="kv"><span>${t('ai_size')}</span><b>${tv(p.market)}</b></div>
+        <div class="kv"><span>${t('ai_cost')}</span><b>${p.cost}</b></div>
+        <div class="kv"><span>${t('ai_price')}</span><b>${p.price}</b></div>
+        <div class="kv"><span>${t('ai_rating')}</span><b>${p.rating}/100</b></div>
+      </div>
+      <div class="card"><h3>${t('ai_risks')}</h3>
+        <p class="muted" style="font-size:13.5px">${t('ai_r1a')}${catL(p.cat)}${t('ai_r1b')}<br>${t('ai_r2')}<br>${t('ai_r3')} ${p.price} vs ${p.cost}.</p>
+        ${p.status==='assess'?`<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="toDemand(${p.id})">${t('ai_toDemand')}</button>`:''}
+      </div></div>`;
+  }
+  if(tb==='fin'){
+    return `<div class="card"><h3>${t('f_title')}</h3>
+      <div class="kv"><span>${t('f_cost')}</span><b>${p.cost}</b></div>
+      <div class="kv"><span>${t('f_price')}</span><b>${p.price}</b></div>
+      <div class="kv"><span>${t('f_moq')}</span><b>${p.moq}</b></div>
+      <div class="kv"><span>${t('f_royalty')}</span><b>${p.royalty}%</b></div>
+      <h3 style="margin:18px 0 4px;font-size:15px">${t('f_split')}</h3>
+      <div class="bar">
+        <div class="seg" style="background:var(--platform);width:5%">5%</div>
+        <div class="seg" style="background:var(--author);width:${p.royalty}%">${p.royalty}%</div>
+        <div class="seg" style="background:var(--investor);width:26%">26%</div>
+        <div class="seg" style="background:var(--seller);width:${64-p.royalty}%">${t('f_rest')}</div>
+      </div>
+      <p class="muted" style="font-size:12.5px">${t('f_note')}</p>
+    </div>`;
+  }
+  if(tb==='prod'){
+    const canOffer=S.role==='maker'&&['findmaker','demand'].includes(p.status);
+    return `<div class="card"><h3>${t('pr_offers')}</h3>
+      ${p.offers.length?p.offers.map(o=>`<div class="offer"><div style="flex:1"><b>${o.makerK?t(o.makerK):o.maker}</b> · Trust ${o.trust}<div class="muted" style="font-size:12.5px">${t('pr_price')} ${o.price} · MOQ ${o.moq} · ${o.days} ${t('pr_days')}</div></div>${S.role==='author'&&p.status==='findmaker'?`<button class="btn btn-ghost btn-sm" onclick="acceptOffer(${p.id})">${t('pr_accept')}</button>`:''}</div>`).join(''):`<div class="empty">${t('pr_empty')}</div>`}
+      ${canOffer?`<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+        <h3 style="font-size:14px">${t('pr_sendTitle')}</h3>
+        <div class="grid g3" style="margin-top:8px">
+          <div class="field"><label>${t('pr_priceLbl')}</label><input id="of_price" placeholder="$"></div>
+          <div class="field"><label>${t('pr_moqLbl')}</label><input id="of_moq" placeholder="${t('pr_pcs')}"></div>
+          <div class="field"><label>${t('pr_daysLbl')}</label><input id="of_days" placeholder="30"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="sendOffer(${p.id})">${t('pr_send')}</button>
+      </div>`:''}
+    </div>`;
+  }
+  if(tb==='inv'){
+    const canInvest=S.role==='investor'&&['findinv','findmaker'].includes(p.status);
+    return `<div class="card"><h3>${t('iv_title')}</h3>
+      ${p.investments.length?p.investments.map(i=>`<div class="offer"><div style="flex:1"><b>${i.investorK?t(i.investorK):i.investor}</b><div class="muted" style="font-size:12.5px">${i.amount} · ${t(i.typeK)}</div></div><span class="badge" style="background:#0E7C661f;color:#0E7C66">${t('iv_inDeal')}</span></div>`).join(''):`<div class="empty">${t('iv_empty')}</div>`}
+      ${canInvest?`<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+        <h3 style="font-size:14px">${t('iv_formTitle')}</h3>
+        <div class="grid g2" style="margin-top:8px">
+          <div class="field"><label>${t('iv_amount')}</label><input id="in_amt" placeholder="$50 000"></div>
+          <div class="field"><label>${t('iv_typeLbl')}</label><select id="in_type"><option value="iv_equity">${t('iv_equity')}</option><option value="iv_royalty">${t('iv_royalty')}</option><option value="iv_fix">${t('iv_fix')}</option></select></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="invest(${p.id})">${t('iv_submit')}</button>
+      </div>`:''}
+    </div>`;
+  }
+  if(tb==='deal'){
+    const has=p.investments.length&&p.offers.length;
+    const o=has?p.offers[0]:null, iv=has?p.investments[0]:null;
+    return `<div class="card"><h3>${t('dl_title')}</h3>
+      ${has?`
+      <div class="kv"><span>${t('dl_maker')}</span><b>${o.makerK?t(o.makerK):o.maker}</b></div>
+      <div class="kv"><span>${t('dl_investor')}</span><b>${iv.investorK?t(iv.investorK):iv.investor}</b></div>
+      <div class="kv"><span>${t('dl_cond')}</span><b>${t(iv.typeK)}</b></div>
+      <div class="kv"><span>${t('dl_escrow')}</span><b>${t('dl_escrowV')}</b></div>
+      <div class="kv"><span>${t('dl_rights')}</span><b>${t('dl_rightsV')}</b></div>
+      ${p.status!=='prod'&&p.status!=='sales'?`<button class="btn btn-primary btn-sm" style="margin-top:14px" onclick="signDeal(${p.id})">${t('dl_sign')}</button>`:`<p class="muted" style="font-size:13px;margin-top:12px">${t('dl_signed')}</p>`}
+      `:`<div class="empty">${t('dl_need')}</div>`}
+    </div>`;
+  }
+  if(tb==='docs'){
+    const docs=defaultDocs(p);
+    return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3>${t('dc_title')}</h3><button class="btn btn-ghost btn-sm" onclick="toast(t('ts_docUp'))">${t('dc_upload')}</button></div>
+      ${docs.map(d=>`<div class="doc"><span class="dt" style="background:${DOCTYPES[d.t]||'#888'}">${t('dt_'+d.t)}</span><span class="nm">${t(d.k)}</span><a class="muted" style="font-size:13px" onclick="toast(t('ts_docOpen'))">${t('dc_open')}</a></div>`).join('')}
+      <p class="muted" style="font-size:12.5px;margin-top:12px">${t('dc_note')}</p>
+    </div>`;
+  }
+  if(tb==='chat'){
+    const ms=defaultMsgs(p);
+    return `<div class="card"><h3 style="margin-bottom:12px">${t('ch_title')}</h3>
+      <div class="chatbox">${ms.map(m=>`<div class="msg ${m.me?'me':'them'}"><div class="who">${esc(msgWho(m))}</div>${m.textK?t(m.textK):esc(m.text)}</div>`).join('')}</div>
+      <div class="chatin"><input id="msgin" placeholder="${t('ch_ph')}" onkeydown="if(event.key==='Enter')sendMsg(${p.id})"><button class="btn btn-primary btn-sm" onclick="sendMsg(${p.id})">${t('ch_send')}</button></div>
+    </div>`;
+  }
+}
+function msgWho(m){
+  if(m.roleK) return t('ch_you')+' ('+rl(m.roleK)+')';
+  if(m.whoK) return t(m.whoK);
+  return tv(m.who);
+}
+function timeline(p){
+  const order=['assess','demand','findmaker','findinv','deal','prod','sales'];
+  const cur=order.indexOf(p.status);
+  return `<div class="timeline">${order.map((s,i)=>`<div class="tl ${i<cur?'done':''} ${i===cur?'cur':''}"><span class="d"></span><span>${t('tl_'+s)}</span></div>`).join('')}</div>`;
+}
+
+/* ---------------- ACTIONS ---------------- */
+function runAI(id){const p=P(id);p.rating=70+((id*7)%25);p.market=MARKETS[id%4];p.cost='$'+(6+id%9);p.moq=['500','1000','2000'][id%3];toast(t('ts_ai')+p.rating);render();}
+function toDemand(id){P(id).status='demand';toast(t('ts_demand'));render();}
+function sendOffer(id){const p=P(id);const pr=$('#of_price').value||'$—',mq=$('#of_moq').value||'—',dy=$('#of_days').value||'—';p.offers.push({makerK:'pr_yourFactory',price:pr,moq:mq,days:dy,trust:85});if(p.status==='demand'||p.status==='findmaker')p.status='findmaker';toast(t('ts_offer'));render();}
+function acceptOffer(id){const p=P(id);p.status='findinv';toast(t('ts_accept'));render();}
+function invest(id){const p=P(id);const a=$('#in_amt').value||'$50 000',tk=$('#in_type').value;p.investments.push({investorK:'iv_you',amount:a,typeK:tk});p.status='deal';toast(t('ts_invest'));S.tab='deal';render();}
+function signDeal(id){const p=P(id);p.status='prod';toast(t('ts_signed'));setTimeout(()=>{p.status='sales';toast(t('ts_batch'));render();},1200);render();}
+function createProject(){
+  const title=$('#np_title').value.trim();if(!title){toast(t('n_needName'),false);return;}
+  const p={id:S.nextId++,title:title,cat:$('#np_cat').value,emoji:'✨',authorK:'n_youAuthor',status:'assess',rating:0,market:'—',cost:'—',price:$('#np_price').value||'$—',moq:'—',royalty:8,demand:0,offers:[],investments:[]};
+  S.projects.unshift(p);toast(t('ts_created'));S.tab='ai';go('#/project/'+p.id);
+}
+function toggleTheme(){S.theme=S.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=S.theme==='dark'?'dark':'';S.showN=false;render();}
+function toggleNotifs(){S.showN=!S.showN;if(S.showN)S.notifs=0;render();}
+function catalogItems(){
+  let l=S.filterCat==='all'?S.projects:S.projects.filter(p=>p.cat===S.filterCat);
+  const q=(S.search||'').trim().toLowerCase();
+  if(q)l=l.filter(p=>tv(p.title).toLowerCase().includes(q)||(authorName(p)||'').toLowerCase().includes(q));
+  return l.length?l.map(pcard).join(''):`<div class="empty">${t('c_empty')}</div>`;
+}
+function sendMsg(id){const p=P(id);const el=document.getElementById('msgin');const v=(el.value||'').trim();if(!v)return;defaultMsgs(p);p.messages.push({roleK:S.role,me:true,text:v});render();const b=document.querySelector('.chatbox');if(b)b.scrollTop=b.scrollHeight;}
+
+/* ---------------- NEW PROJECT ---------------- */
+function newView(){
+  return `
+  <div class="page-h"><div><h1>${t('n_title')}</h1><p>${t('n_sub')}</p></div></div>
+  <div class="card" style="max-width:620px">
+    <div class="field"><label>${t('n_name')}</label><input id="np_title" placeholder="${t('n_namePh')}"></div>
+    <div class="field"><label>${t('n_cat')}</label><select id="np_cat">${CATS.map(c=>`<option value="${c}">${catL(c)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('n_desc')}</label><textarea placeholder="${t('n_descPh')}"></textarea></div>
+    <div class="field"><label>${t('n_price')}</label><input id="np_price" placeholder="$39"></div>
+    <button class="btn btn-primary" onclick="createProject()">${t('n_create')}</button>
+  </div>`;
+}
+
+/* ---------------- CATALOGS ---------------- */
+function makersView(){
+  return `<div class="page-h"><div><h1>${t('mk_title')}</h1><p>${t('mk_sub')}</p></div></div>
+  <div class="grid g3">${S.makers.map(m=>`<div class="card"><h3>${m.name}</h3><p class="muted" style="font-size:13px">${t('mk_cats')}: ${tv(m.cats)}<br>${t('mk_moq')} ${m.moq}</p><div style="margin-top:8px"><span class="badge" style="background:#0E7C661f;color:#0E7C66">🛡 Trust ${m.trust}</span></div></div>`).join('')}</div>`;
+}
+function investorsView(){
+  return `<div class="page-h"><div><h1>${t('in_title')}</h1><p>${t('in_sub')}</p></div></div>
+  <div class="grid g3">${S.investors.map(m=>`<div class="card"><h3>${m.name}</h3><p class="muted" style="font-size:13px">${tv(m.focus)}</p><div style="margin-top:8px"><span class="badge" style="background:#0E7C661f;color:#0E7C66">🛡 Trust ${m.trust}</span></div></div>`).join('')}</div>`;
+}
+
+/* ---------------- PRICING ---------------- */
+function pricingView(){
+  return `<div class="page-h"><div><h1>${t('pc_title')}</h1><p>${t('pc_sub')}</p></div></div>
+  <div class="grid g2">
+    <div class="card"><h3>${t('pc_rev')}</h3>
+      <div class="kv"><span>${t('pc_c1')}</span><b>5%</b></div>
+      <div class="kv"><span>${t('pc_c2')}</span><b>3%</b></div>
+      <div class="kv"><span>${t('pc_c3')}</span><b>3%</b></div>
+      <div class="kv"><span>${t('pc_c4')}</span><b>1%</b></div>
+      <div class="kv"><span>${t('pc_c5')}</span><b>15%</b></div>
+    </div>
+    <div class="card"><h3>${t('pc_subs')}</h3>
+      <div class="kv"><span>${t('pc_authorPro')}</span><b>$29</b></div>
+      <div class="kv"><span>${rl('maker')}</span><b>$99</b></div>
+      <div class="kv"><span>${rl('investor')}</span><b>$199</b></div>
+      <div class="kv"><span>${rl('seller')}</span><b>$99</b></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>${t('pc_wf')}</h3>
+    <div class="bar"><div class="seg" style="background:var(--platform);width:5%">5%</div><div class="seg" style="background:var(--author);width:8%">8%</div><div class="seg" style="background:var(--investor);width:26%">26%</div><div class="seg" style="background:var(--seller);width:61%">61%</div></div>
+    <p class="muted" style="font-size:12.5px">${t('pc_wfNote')}</p>
+  </div>`;
+}
+
+/* ---------------- ANALYTICS ---------------- */
+function analyticsView(){
+  const funnel=[['an_fn1',1000],['an_fn2',720],['an_fn3',430],['an_fn4',260],['an_fn5',150],['an_fn6',110],['an_fn7',100]];
+  const cats=[['electronics',260,'var(--author)'],['home',220,'var(--maker)'],['gadgets',180,'var(--investor)'],['eco',190,'var(--seller)'],['sport',150,'var(--admin)']];
+  const cmax=Math.max(...cats.map(c=>c[1]));
+  const deals=[8,14,22,31,45,60];
+  return `
+  <div class="page-h"><div><h1>${t('an_title')}</h1><p>${t('an_sub')}</p></div></div>
+  <div class="tiles">
+    <div class="tile"><div class="v">1 000</div><div class="k">${t('an_t1')}</div></div>
+    <div class="tile"><div class="v">$5.2M</div><div class="k">${t('an_t2')}</div></div>
+    <div class="tile"><div class="v">100</div><div class="k">${t('an_t3')}</div></div>
+    <div class="tile"><div class="v">79</div><div class="k">${t('an_t4')}</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>${t('an_funnel')}</h3><p class="muted" style="font-size:12.5px;margin-bottom:12px">${t('an_funnelSub')}</p>
+      ${funnel.map(([k,v])=>chartRow(t(k),v,1000,'var(--accent)')).join('')}
+    </div>
+    <div class="card"><h3>${t('an_cats')}</h3><p class="muted" style="font-size:12.5px;margin-bottom:12px">${t('an_catsSub')}</p>
+      ${cats.map(([k,v,c])=>chartRow(catL(k),v,cmax,c)).join('')}
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>${t('an_deals')}</h3><p class="muted" style="font-size:12.5px">${t('an_dealsSub')}</p>${lineChart(MONTHS.map(tv),deals)}</div>`;
+}
+function chartRow(label,val,max,color){const w=Math.max(6,Math.round(val/max*100));return `<div class="chartrow"><div class="cl">${label}</div><div class="ct"><div class="cf" style="width:${w}%;background:${color}">${val}</div></div></div>`;}
+
+/* ---------------- ONBOARDING TOUR ---------------- */
+const TOUR=[
+  {em:'👋',
+   title:['IdeaFlow-a xoş gəlmisiniz','Добро пожаловать в IdeaFlow','Welcome to IdeaFlow'],
+   text:['Platforma məhsulu ideyadan satışa qədər aparır: qiymətləndirmə, tələb, istehsalçı, investor və təhlükəsiz sövdələşmə — hamısı bir yerdə.','Платформа ведёт продукт от идеи до продаж: оценка, спрос, производитель, инвестор и безопасная сделка — в одном месте.','The platform guides a product from idea to sales: assessment, demand, manufacturer, investor and a safe deal — all in one place.']},
+  {em:'🗂️',
+   title:['Layihə kartı','Карточка проекта','Project card'],
+   text:['Hər layihə vahid rəqəmsal pasportdur: AI qiymətləndirmə, maliyyə modeli, istehsal, investisiyalar, sənədlər və iştirakçıların söhbəti.','Каждый проект — единый цифровой паспорт: AI-оценка, финмодель, производство, инвестиции, документы и чат участников.','Every project is a single digital passport: AI score, financials, production, investment, documents and a participant chat.']},
+  {em:'👥',
+   title:['Rollar və etibar','Роли и доверие','Roles & trust'],
+   text:['Dörd əsas rol layihəni aparır, tərəfdaşlar nöqtəvi qoşulur, etibar xidmətləri isə (Trust Index, İM müdafiəsi) bütün mərhələlərdə işləyir.','Четыре основные роли ведут проект, партнёры подключаются точечно, а сервисы доверия (Trust Index, защита ИС) работают на всех шагах.','Four core roles run the project, partners plug in as needed, and trust services (Trust Index, IP protection) work across every step.']},
+  {em:'📊',
+   title:['Analitika və sövdələşmələr','Аналитика и сделки','Analytics & deals'],
+   text:['Layihə hunisini və sövdələşmələrin dinamikasını «Analitika» bölməsində izləyin. Rolu, dili və görünüşü yuxarı paneldən dəyişin.','Следите за воронкой проектов и динамикой сделок в разделе «Аналитика». Роль, язык и тему переключайте в шапке.','Track the project funnel and deal dynamics in the Analytics section. Switch role, language and theme in the top bar.']},
+];
+function tourOverlay(){
+  const i=Math.min(S.tour-1,TOUR.length-1);const s=TOUR[i];const last=S.tour>=TOUR.length;
+  return `<div class="overlay" onclick="if(event.target===this)skipTour()"><div class="tourcard">
+    <div class="em">${s.em}</div><h3>${tv(s.title)}</h3><p>${tv(s.text)}</p>
+    <div class="dots">${TOUR.map((_,k)=>`<span class="${k===i?'on':''}"></span>`).join('')}</div>
+    <div class="row"><button class="btn btn-ghost btn-sm" onclick="skipTour()">${t('b_skip')}</button>
+      <button class="btn btn-primary btn-sm" onclick="nextTour()">${last?t('b_done'):t('b_next')}</button></div>
+  </div></div>`;
+}
+function startTour(){S.tour=1;S.showN=false;render();}
+function nextTour(){if(S.tour>=TOUR.length){S.tour=0;S.onboarded=true;}else S.tour++;render();}
+function skipTour(){S.tour=0;S.onboarded=true;render();}
+function lineChart(labels,data){
+  const W=640,H=210,pl=34,pr=14,pt=16,pb=28;
+  const max=Math.max(...data)*1.15, iw=W-pl-pr, ih=H-pt-pb;
+  const x=i=>pl+(iw*i/(labels.length-1)), y=v=>pt+ih-(v/max*ih);
+  const pts=data.map((v,i)=>[x(i),y(v)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=`M${x(0).toFixed(1)} ${(pt+ih).toFixed(1)} `+pts.map(p=>'L'+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+` L${x(labels.length-1).toFixed(1)} ${(pt+ih).toFixed(1)} Z`;
+  const grid=[0,.5,1].map(f=>{const yy=(pt+ih-f*ih).toFixed(1);return `<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="6" y="${(+yy+4)}" font-size="10" fill="var(--muted)">${Math.round(max*f)}</text>`;}).join('');
+  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><text x="${p[0].toFixed(1)}" y="${(p[1]-10).toFixed(1)}" font-size="10.5" font-weight="700" fill="var(--ink)" text-anchor="middle">${data[i]}</text>`).join('');
+  const xl=labels.map((l,i)=>`<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="10.5" fill="var(--muted)" text-anchor="middle">${l}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin-top:8px">${grid}<path d="${area}" fill="var(--accent)" opacity=".10"/><path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${xl}</svg>`;
+}
+</script>
+</body>
+</html>
