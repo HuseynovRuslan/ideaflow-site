@@ -1,0 +1,19 @@
+# QRLog-un Caddy-si ilə eyni şəbəkə — psklub-un işlətdiyi pattern-in eynisi.
+# Caddy konteynerdədir, ona görə `reverse_proxy 127.0.0.1:8100` İŞLƏMİR: o ünvan
+# Caddy-nin öz konteynerinə baxar. Xidmət şəbəkəyə ad ilə qoşulur və Caddy ona
+# `ideaflow-app:8080` kimi çatır.
+#
+# Serverdə bu fayl override kimi bağlanır:
+#   ln -sfn docker-compose.shared-caddy.yml /opt/ideaflow/app/docker-compose.override.yml
+#
+# Lokalda bağlanmır — `attendanceqr_default` şəbəkəsi yalnız serverdə var.
+services:
+  app:
+    networks:
+      default:
+      proxy_net:
+        aliases: [ideaflow-app]
+networks:
+  proxy_net:
+    external: true
+    name: attendanceqr_default

@@ -1,0 +1,44 @@
+# IdeaFlow — əsas tərkib. Serverdə bunun yanında docker-compose.override.yml
+# (shared-caddy simlinki) dayanır və xidməti Caddy şəbəkəsinə qoşur.
+# Port yalnız 127.0.0.1-ə açılır: xaricə çıxış Caddy vasitəsilə olur.
+services:
+  app:
+    build: .
+    environment:
+      TZ: Asia/Baku
+      DATA_DIR: /data
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ideaflow
+      PGUSER: ideaflow
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env faylında təyin edilməlidir}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL .env faylında təyin edilməlidir}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD .env faylında təyin edilməlidir}
+    volumes:
+      - ideaflow-files:/data
+    ports:
+      - "127.0.0.1:8100:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ideaflow
+      POSTGRES_USER: ideaflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env faylında təyin edilməlidir}
+      TZ: Asia/Baku
+    volumes:
+      - ideaflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ideaflow -d ideaflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  ideaflow-db:
+  ideaflow-files:

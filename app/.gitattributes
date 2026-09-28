@@ -1,0 +1,15 @@
+# Serverdə işləyən fayllar həmişə LF ilə checkout olunmalıdır — Windows-da
+# CRLF ilə yazılan skript Linux-da `bad interpreter` ilə çökür.
+*.sh        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+Dockerfile  text eol=lf
+.dockerignore text eol=lf
+.env.example text eol=lf
+
+# Qalanı üçün normal mətn davranışı
+*.cs   text
+*.js   text
+*.css  text
+*.html text
+*.md   text
