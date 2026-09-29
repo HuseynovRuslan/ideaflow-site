@@ -21,6 +21,8 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env faylında təyin edilməlidir}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL .env faylında təyin edilməlidir}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD .env faylında təyin edilməlidir}
+      # Claude təhlili üçün. Boş qalsa funksiya sönülüdür, qalan hər şey işləyir.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - ideaflow-files:/data
     ports:

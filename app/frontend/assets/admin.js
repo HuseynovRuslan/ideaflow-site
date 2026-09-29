@@ -49,7 +49,12 @@ function reloadAdmin() {
 
 /* ============================== İCMAL ============================== */
 async function adminOverview() {
-  const st = await API.get('/admin/stats');
+  const [st, pendingUsers, projects] = await Promise.all([
+    API.get('/admin/stats'),
+    API.get('/admin/users?status=pending&role=all'),
+    API.get('/projects'),
+  ]);
+  const pendingProjects = projects.filter((p) => p.status === 'assess');
   const funnel = st.funnel;
   const fmax = Math.max(...funnel.map((f) => f.count), 1);
   const cats = Object.entries(st.projByCat);
@@ -64,12 +69,8 @@ async function adminOverview() {
     <div class="tile"><div class="v">${st.usersByStatus.active || 0}</div><div class="k">${esc(t('ad_activeUsers'))}</div></div>
     <div class="tile"><div class="v">${money(st.money.invested)}</div><div class="k">${esc(t('an_t2'))}</div></div>
   </div>
-  ${st.totals.pendingUsers ? `
-    <div class="card" style="margin-bottom:14px;border-color:var(--maker)">
-      <h3>⏳ ${st.totals.pendingUsers} ${esc(t('ad_pendingUsers'))}</h3>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px"
-              onclick="A.userStatus='pending';go('#/admin/users')">${esc(t('ad_users'))} →</button>
-    </div>` : ''}
+  ${queueCard(pendingUsers)}
+  ${projectQueueCard(pendingProjects)}
   <div class="grid g2">
     <div class="card"><h3>${esc(t('an_funnel'))}</h3>
       ${funnel.map((f) => chartRow(t('tl_' + f.status), f.count, fmax, 'var(--accent)')).join('')}
@@ -91,6 +92,78 @@ async function adminOverview() {
     <div class="kv"><span>${esc(t('an_t2'))}</span><b>${money(st.money.invested)}</b></div>
     <div class="kv"><span>${esc(t('d_s_t2'))} × ${esc(t('f_price'))}</span><b>${money(st.money.pipeline)}</b></div>
   </div>`;
+}
+
+/* İcmalda təsdiq növbəsi — admin ayrı səhifəyə keçmədən bir kliklə qərar verir. */
+function queueCard(list) {
+  if (!list.length) return '';
+  const shown = list.slice(0, 12);
+  return `
+  <div class="card" style="margin-bottom:14px;border-color:var(--maker)">
+    <div class="qhead">
+      <h3>⏳ ${esc(t('ad_queue'))} <span class="muted" style="font-weight:500">(${list.length})</span></h3>
+      <div class="acts">
+        <button class="btn btn-ok btn-sm" onclick="bulkStatus([${list.map((u) => u.id).join(',')}],'active')">
+          ✓ ${esc(t('ad_approveAll'))}</button>
+        ${list.length > shown.length ? `<button class="btn btn-ghost btn-sm"
+          onclick="A.userStatus='pending';go('#/admin/users')">${esc(t('ad_users'))} →</button>` : ''}
+      </div>
+    </div>
+    ${shown.map((u) => {
+      const meta = ROLE_META[u.role] || ROLE_META.author;
+      return `<div class="qrow">
+        <div style="flex:1;min-width:0">
+          <b>${esc(u.fullName)}</b>
+          <span class="badge" style="background:${meta.color}1f;color:${meta.color};margin-left:6px">${meta.emoji} ${esc(rl(u.role))}</span>
+          <div class="rowsub mono">${esc(u.email)}${u.company ? ' · ' + esc(u.company) : ''}${u.phone ? ' · ' + esc(u.phone) : ''}</div>
+        </div>
+        <div class="acts">
+          <button class="btn btn-ok btn-sm" onclick="setUserStatus(${u.id},'active')">${esc(t('ad_approve'))}</button>
+          <button class="btn btn-ghost btn-sm" onclick="setUserStatus(${u.id},'rejected')">${esc(t('ad_reject'))}</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function projectQueueCard(list) {
+  if (!list.length) return '';
+  return `
+  <div class="card" style="margin-bottom:14px;border-color:var(--accent)">
+    <h3>📋 ${esc(t('ad_projQueue'))} <span class="muted" style="font-weight:500">(${list.length})</span></h3>
+    ${list.slice(0, 12).map((p) => `<div class="qrow">
+      <div style="flex:1;min-width:0">
+        <a href="#/project/${p.id}"><b>${esc(p.title)}</b></a>
+        <div class="rowsub">${esc(p.authorName)} · ${esc(catL(p.category))} · ${stars(p.rating)}</div>
+      </div>
+      <div class="acts">
+        <button class="btn btn-ok btn-sm" onclick="queueProject(${p.id},'demand')">${esc(t('ad_toDemand'))}</button>
+        <button class="btn btn-ghost btn-sm" onclick="queueProject(${p.id},'rejected')">${esc(t('ad_reject'))}</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+async function queueProject(id, to) {
+  try {
+    await API.post(`/projects/${id}/status`, { to });
+    toast(t('ad_saved'));
+    await reloadAdmin();
+  } catch (err) { toastErr(err); }
+}
+
+async function bulkStatus(ids, status) {
+  if (!ids.length) return toast(t('ad_noneSel'), false);
+  try {
+    const res = await API.post('/admin/users/bulk-status', { ids, status });
+    toast(`${res.count} ${t('ad_bulkDone')}`);
+    await reloadAdmin();
+  } catch (err) { toastErr(err); }
+}
+
+/* İstifadəçilər cədvəlində seçilmiş (checkbox) gözləyən hesablar. */
+function selectedUserIds() {
+  return $$('.usel:checked').map((el) => Number(el.value));
 }
 
 /* =========================== İSTİFADƏÇİLƏR =========================== */
@@ -115,9 +188,16 @@ async function adminUsers() {
     ${roles.map((r) => `<button class="chipf ${A.userRole === r ? 'on' : ''}"
       onclick="A.userRole='${r}';reloadAdmin()">${esc(r === 'all' ? t('ad_filterAll') : rl(r))}</button>`).join('')}
   </div>
+  ${list.some((u) => u.status === 'pending') ? `
+  <div class="pillrow" style="margin-bottom:10px">
+    <button class="btn btn-ok btn-sm" onclick="bulkStatus(selectedUserIds(),'active')">✓ ${esc(t('ad_approveSel'))}</button>
+    <button class="btn btn-ghost btn-sm" onclick="bulkStatus(selectedUserIds(),'rejected')">${esc(t('ad_rejectSel'))}</button>
+  </div>` : ''}
   ${list.length ? `
   <div class="tablewrap"><table class="tbl">
     <thead><tr>
+      <th style="width:28px">${list.some((u) => u.status === 'pending')
+        ? `<input type="checkbox" aria-label="all" onclick="$$('.usel').forEach((c) => { c.checked = this.checked; })">` : ''}</th>
       <th>${esc(t('a_name'))}</th><th>${esc(t('a_role'))}</th><th>${esc(t('ab_st'))}</th>
       <th>${esc(t('ad_trust'))}</th><th>${esc(t('ad_projCount'))}</th>
       <th>${esc(t('ad_created'))}</th><th></th>
@@ -131,6 +211,7 @@ function userRow(u) {
   const isMe = u.id === S.me.id;
   return `
   <tr>
+    <td>${u.status === 'pending' ? `<input type="checkbox" class="usel" value="${u.id}">` : ''}</td>
     <td>
       <b>${esc(u.fullName)}</b>${isMe ? ` <span class="muted">(${esc(t('g_you'))})</span>` : ''}
       <div class="rowsub mono">${esc(u.email)}</div>
@@ -295,17 +376,38 @@ async function adminSettings() {
           <input id="set_${k}" type="number" step="1" min="0" value="${esc(s[k])}"></div>`).join('')}
     </div>
   </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>⚡ ${esc(t('ad_auto'))}</h3>
+      <p class="muted" style="font-size:12.5px;margin:4px 0 10px">${esc(t('ad_autoSub'))}</p>
+      ${AUTO_ROLES.map((r) => `
+        <label class="checkrow">
+          <input type="checkbox" id="set_auto_${r}" ${s['auto_' + r] === '1' ? 'checked' : ''}>
+          ${ROLE_META[r].emoji} ${esc(rl(r))}
+        </label>`).join('')}
+    </div>
+    <div class="card"><h3>✨ ${esc(t('ad_ai'))}</h3>
+      <div class="field"><label>${esc(t('ad_aiLimit'))}</label>
+        <input id="set_ai_daily_limit" type="number" step="1" min="0" max="100" value="${esc(s.ai_daily_limit)}"></div>
+      <p class="muted" style="font-size:12.5px">${esc(t('ad_aiNote'))}</p>
+    </div>
+  </div>
   <div style="margin-top:14px">
     <button class="btn btn-primary btn-sm" onclick="saveSettings()">${esc(t('ad_save'))}</button>
     <span class="muted" style="font-size:12.5px;margin-left:10px">${esc(t('ad_feeNote'))}</span>
   </div>`;
 }
 
+const AUTO_ROLES = ['author', 'seller', 'maker', 'investor'];
+
 async function saveSettings() {
   const keys = ['fee_production', 'fee_investment', 'fee_sales', 'fee_escrow', 'fee_partner',
-    'sub_author', 'sub_maker', 'sub_investor', 'sub_seller'];
+    'sub_author', 'sub_maker', 'sub_investor', 'sub_seller', 'ai_daily_limit'];
   const body = {};
   keys.forEach((k) => { body[k] = val('set_' + k); });
+  AUTO_ROLES.forEach((r) => {
+    const el = document.getElementById('set_auto_' + r);
+    body['auto_' + r] = el && el.checked ? '1' : '0';
+  });
   try {
     await API.post('/admin/settings', body);
     toast(t('ad_saved'));

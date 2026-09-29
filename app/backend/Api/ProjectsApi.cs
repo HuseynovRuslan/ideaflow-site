@@ -17,13 +17,24 @@ public static class ProjectsApi
          or exists (select 1 from preorders   r where r.project_id = p.id and r.seller_id   = @me))
         """;
 
-    private const string ListSelect = """
+    // Siyahı və detal eyni sütunlardan başlayır (ReadCard indeksləri 0–17).
+    // Detal əlavə sütunları ListFrom-dan ƏVVƏL qoşur — join-lərdən sonra yazılan
+    // «, p.descr» Postgres üçün sütun deyil, «p.descr» adlı cədvəl olardı.
+    private const string ListColumns = """
         select p.id, p.title, p.category, p.status, p.rating, p.price, p.unit_cost, p.moq,
                p.royalty, p.market, p.created_at, p.author_id, u.full_name, u.trust,
-               coalesce(pre.qty, 0), coalesce(off.cnt, 0), coalesce(inv.total, 0)
+               coalesce(pre.qty, 0), coalesce(off.cnt, 0), coalesce(inv.total, 0),
+               coalesce(itr.qty, 0)
+        """;
+
+    private const string ListSelect = ListColumns + ListFrom;
+
+    private const string ListFrom = """
+
         from projects p
         join users u on u.id = p.author_id
         left join (select project_id, sum(qty)    qty   from preorders                          group by 1) pre on pre.project_id = p.id
+        left join (select project_id, sum(qty)    qty   from interests                          group by 1) itr on itr.project_id = p.id
         left join (select project_id, count(*)    cnt   from offers      where status='pending' group by 1) off on off.project_id = p.id
         left join (select project_id, sum(amount) total from investments where status='accepted' group by 1) inv on inv.project_id = p.id
         """;
@@ -102,8 +113,8 @@ public static class ProjectsApi
             if (fail is not null) return fail;
 
             await using var c = await Db.OpenAsync();
-            var sql = ListSelect + ", p.descr, p.risks, p.assessed_at where p.id = @id and " +
-                      (u!.Role == "admin" ? "true" : VisibleWhere);
+            var sql = ListColumns + ", p.descr, p.risks, p.assessed_at, p.ai_report, p.ai_lang, p.ai_at" +
+                      ListFrom + " where p.id = @id and " + (u!.Role == "admin" ? "true" : VisibleWhere);
             await using var cmd = new NpgsqlCommand(sql, c);
             cmd.Parameters.AddWithValue("id", id);
             cmd.Parameters.AddWithValue("vis", Rules.VisibleStatuses(u.Role));
@@ -114,27 +125,39 @@ public static class ProjectsApi
             {
                 if (!await r.ReadAsync()) return Api.Err(404, "e_notFound");
                 card = (Dictionary<string, object?>)ReadCard(r);
-                card["descr"] = r.GetString(17);
-                card["risks"] = JsonSerializer.Deserialize<string[]>(r.GetString(18)) ?? [];
-                card["assessedAt"] = r.IsDBNull(19) ? null : r.GetDateTime(19);
+                card["descr"] = r.GetString(18);
+                card["risks"] = JsonSerializer.Deserialize<string[]>(r.GetString(19)) ?? [];
+                card["assessedAt"] = r.IsDBNull(20) ? null : r.GetDateTime(20);
+                // Hesabat bazada mətn kimi saxlanılır, klientə JSON obyekt kimi gedir.
+                card["aiReport"] = r.IsDBNull(21) ? null : JsonDocument.Parse(r.GetString(21)).RootElement.Clone();
+                card["aiLang"] = r.GetString(22);
+                card["aiAt"] = r.IsDBNull(23) ? null : r.GetDateTime(23);
             }
 
             var authorId = (int)card["authorId"]!;
             var status = (string)card["status"]!;
             var isOwner = authorId == u.Id;
+            var canAssess = (isOwner || u.Role == "admin") && status is "draft" or "assess" or "demand";
 
             card["can"] = new
             {
                 edit = (isOwner && status is "draft" or "assess" or "demand") || u.Role == "admin",
-                assess = (isOwner || u.Role == "admin") && status is "draft" or "assess" or "demand",
+                assess = canAssess,
+                aiAssess = canAssess && Ai.Enabled,
                 offer = Rules.CanOffer(u.Role, status),
                 invest = Rules.CanInvest(u.Role, status),
                 preorder = Rules.CanPreorder(u.Role, status),
                 transitions = NextSteps(status, u.Role, isOwner),
+                contract = await Contract.CanSeeAsync(c, id, status, u.Id, u.Role, isOwner),
             };
+            card["aiEnabled"] = Ai.Enabled;
+            card["isPublic"] = Rules.PublicStatuses.Contains(status);
             card["offers"] = await Deals.OffersAsync(c, id, u.Id, u.Role, isOwner);
             card["investments"] = await Deals.InvestmentsAsync(c, id, u.Id, u.Role, isOwner);
             card["preorders"] = await Deals.PreordersAsync(c, id, u.Id, u.Role, isOwner);
+            // Alıcı kontaktları şəxsi məlumatdır — yalnız müəllif və admin görür.
+            card["interestList"] = isOwner || u.Role == "admin"
+                ? await PublicApi.InterestsAsync(c, id) : new List<object>();
 
             // Sənədlər (NDA, patent, müqavilə) və söhbət kataloqa baxan hər kəsə deyil,
             // yalnız layihənin iştirakçılarına açıqdır.
@@ -218,7 +241,8 @@ public static class ProjectsApi
             await using var c = await Db.OpenAsync();
             await using var get = new NpgsqlCommand("""
                 select p.author_id, p.status, p.category, p.price, p.unit_cost, p.descr,
-                       coalesce((select sum(qty) from preorders where project_id = p.id), 0)
+                       coalesce((select sum(qty) from preorders where project_id = p.id), 0) +
+                       coalesce((select sum(qty) from interests where project_id = p.id), 0)
                 from projects p where p.id = @id
                 """, c);
             get.Parameters.AddWithValue("id", id);
@@ -258,6 +282,82 @@ public static class ProjectsApi
 
             await Audit.LogAsync(c, u.Id, "project_assess", "project", id, new { res.Rating }, ctx);
             return Results.Json(new { ok = true, rating = res.Rating, market = res.Market, risks = res.Risks, breakdown = res.Breakdown });
+        });
+
+        // ------------------------------------------- Claude ilə dərin təhlil
+        g.MapPost("/{id:int}/ai-assess", async (HttpContext ctx, int id) =>
+        {
+            var (u, fail) = Api.RequireActive(ctx);
+            if (fail is not null) return fail;
+            if (!Ai.Enabled) return Api.Err(503, "e_aiOff");
+
+            await using var c = await Db.OpenAsync();
+            await using var get = new NpgsqlCommand("""
+                select p.author_id, p.status, p.title, p.descr, p.category, p.price, p.unit_cost,
+                       p.moq, p.royalty, p.rating, p.ai_at,
+                       coalesce((select sum(qty) from preorders where project_id = p.id), 0),
+                       coalesce((select sum(qty) from interests where project_id = p.id), 0)
+                from projects p where p.id = @id
+                """, c);
+            get.Parameters.AddWithValue("id", id);
+
+            Ai.Input input;
+            int authorId; string status; DateTime? lastAt;
+            await using (var r = await get.ExecuteReaderAsync())
+            {
+                if (!await r.ReadAsync()) return Api.Err(404, "e_notFound");
+                authorId = r.GetInt32(0); status = r.GetString(1);
+                lastAt = r.IsDBNull(10) ? null : r.GetDateTime(10);
+                input = new Ai.Input(
+                    r.GetString(2), r.GetString(3), r.GetString(4),
+                    r.IsDBNull(5) ? null : r.GetDecimal(5), r.IsDBNull(6) ? null : r.GetDecimal(6),
+                    r.IsDBNull(7) ? null : r.GetInt32(7), r.GetInt32(8),
+                    (int)r.GetInt64(11), (int)r.GetInt64(12), r.GetInt32(9));
+            }
+            if (u!.Role != "admin" && authorId != u.Id) return Api.Err(403, "e_forbidden");
+            if (status is not ("draft" or "assess" or "demand")) return Api.Err(400, "e_stage");
+            if (input.Descr.Trim().Length < 40) return Api.Err(400, "e_aiThinDescr");
+
+            // Hər çağırış pulludur: layihə başına 2 dəqiqədə bir, müəllif başına gündə limit.
+            if (lastAt is not null && DateTime.UtcNow - lastAt.Value < TimeSpan.FromMinutes(2))
+                return Api.Err(429, "e_aiCooldown");
+            if (u.Role != "admin")
+            {
+                var limit = int.TryParse((await Settings.AllAsync(c)).GetValueOrDefault("ai_daily_limit"), out var l) ? l : 5;
+                await using var cnt = new NpgsqlCommand("""
+                    select count(*) from audit
+                    where actor_id = @u and action = 'project_ai' and created_at > now() - interval '1 day'
+                    """, c);
+                cnt.Parameters.AddWithValue("u", u.Id);
+                if ((long)(await cnt.ExecuteScalarAsync())! >= limit) return Api.Err(429, "e_aiLimit");
+            }
+
+            // Brauzer bağlansa da təhlil yarımçıq qalmasın deyə sorğunun ləğvinə bağlamırıq,
+            // yalnız öz vaxt limitimizi qoyuruq.
+            // İki dəfə basılan düymə iki pullu çağırış etməsin.
+            if (!Ai.Running.TryAdd(id, 0)) return Api.Err(409, "e_aiRunning");
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
+            var lang = u.Lang is "ru" or "en" ? u.Lang : "az";
+            string? json, error;
+            try { (json, error) = await Ai.RunAsync(input, lang, cts.Token); }
+            finally { Ai.Running.TryRemove(id, out _); }
+            if (error is not null)
+            {
+                await Audit.LogAsync(c, u.Id, "project_ai_fail", "project", id, new { error }, ctx);
+                return Api.Err(502, error);
+            }
+
+            await using (var upd = new NpgsqlCommand("""
+                update projects set ai_report = @j, ai_lang = @l, ai_at = now() where id = @id
+                """, c))
+            {
+                upd.Parameters.AddWithValue("j", json!);
+                upd.Parameters.AddWithValue("l", lang);
+                upd.Parameters.AddWithValue("id", id);
+                await upd.ExecuteNonQueryAsync();
+            }
+            await Audit.LogAsync(c, u.Id, "project_ai", "project", id, null, ctx);
+            return Results.Json(new { ok = true });
         });
     }
 
@@ -314,5 +414,6 @@ public static class ProjectsApi
         ["demand"] = (int)r.GetInt64(14),
         ["offerCount"] = (int)r.GetInt64(15),
         ["invested"] = r.GetDecimal(16),
+        ["interest"] = (int)r.GetInt64(17),
     };
 }

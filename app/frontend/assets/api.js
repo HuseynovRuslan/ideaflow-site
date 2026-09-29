@@ -19,18 +19,22 @@ const API = {
     } catch (_) {
       throw new ApiError('e_network', 0);
     }
-    if (res.status === 429) throw new ApiError('e_429', 429);
-
     let data = null;
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('application/json')) {
       try { data = await res.json(); } catch (_) { data = null; }
     }
+    // 429-u həm rate limiter (boş cavab), həm də endpoint-lər öz açarı ilə
+    // (məs. e_aiLimit) qaytarır — açar varsa onu göstəririk.
+    if (res.status === 429) throw new ApiError((data && data.error) || 'e_429', 429);
     if (!res.ok) throw new ApiError((data && data.error) || 'e_network', res.status);
     return data;
   },
 
   get(path) { return API.req(path); },
+
+  /* Qeydiyyatsız açıq səhifə üçün (/api/public/...). */
+  pub(path) { return API.req('/public' + path); },
 
   send(path, method, body) {
     return API.req(path, {

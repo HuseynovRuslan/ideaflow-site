@@ -46,6 +46,10 @@ async function render() {
   const { parts } = parseHash();
   const first = parts[0] || '';
 
+  // --- açıq layihə səhifəsi (/p/{id}) — girişdən asılı deyil ---
+  const pubId = publicProjectId();
+  if (pubId) return void (await renderPublic(pubId));
+
   // --- giriş etməyənlər ---
   if (!S.me) {
     if (first === 'login') return void ($('#app').innerHTML = loginView());
@@ -60,6 +64,7 @@ async function render() {
   if (first === 'admin') return void (await renderAdmin(parts.slice(1), token));
 
   if (first === 'project' && parts[1]) return void (await renderProject(Number(parts[1]), token));
+  if (first === 'contract' && parts[1]) return void (await renderContract(Number(parts[1]), token));
 
   const views = {
     '': dashboardView, app: dashboardView, projects: projectsView, new: newProjectView,
@@ -105,8 +110,10 @@ function navItems() {
 function shell(inner) {
   const meta = ROLE_META[S.me.role] || ROLE_META.author;
   const nCount = S.notifs.length;
+  document.body.classList.remove('menu-open'); // hər keçiddə mobil menyu bağlanır
   $('#app').innerHTML = `
   <div class="topbar">
+    <button class="ticon burger" onclick="toggleMenu()" aria-label="${esc(t('nav_menu'))}">☰</button>
     <a class="logo" href="#/app"><span class="m">${logoSvg()}</span>IdeaFlow</a>
     <div class="spacer"></div>
     <div class="roleSel">
@@ -121,7 +128,7 @@ function shell(inner) {
     ${S.showN ? notifDropdown() : ''}
   </div>
   <div class="layout">
-    <div class="side">
+    <div class="side" onclick="if(event.target.closest('a'))toggleMenu(false)">
       <div class="grp">${esc(t('nav_menu'))}</div>
       ${navItems()}
       <div class="grp">${esc(t('pf_title'))}</div>
@@ -130,7 +137,14 @@ function shell(inner) {
       <a onclick="doLogout()"><span class="i">⎋</span>${esc(t('a_logout'))}</a>
     </div>
     <div class="content" id="content">${inner}</div>
-  </div>`;
+  </div>
+  <div class="mscrim" onclick="toggleMenu(false)"></div>`;
+}
+
+/* Mobil menyu (≤820px): sol panel siyirmə kimi açılır. */
+function toggleMenu(force) {
+  const open = force === undefined ? !document.body.classList.contains('menu-open') : force;
+  document.body.classList.toggle('menu-open', open);
 }
 
 function logoSvg() {
@@ -441,7 +455,7 @@ function pcard(p) {
       <div class="meta">${esc(t('p_author'))}: ${esc(p.authorName)} · ${esc(catL(p.category))}</div>
       <div class="foot">${badge(p.status)}${stars(p.rating)}</div>
       <div class="meta" style="margin:8px 0 0">
-        ${p.price ? money(p.price) : '—'} · ${t('d_a_t4')}: ${num(p.demand)}
+        ${p.price ? money(p.price) : '—'} · ${t('d_a_t4')}: ${num(p.demand)}${p.interest ? ` · 🙋 ${num(p.interest)}` : ''}
         ${p.offerCount ? ` · ${p.offerCount} ${t('d_m_t2')}` : ''}
       </div>
     </div>

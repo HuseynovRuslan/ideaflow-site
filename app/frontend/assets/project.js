@@ -28,7 +28,10 @@ async function reloadProject() {
 }
 
 function projectTabs(p) {
-  const tabs = ['about', 'ai', 'fin', 'prod', 'inv'];
+  const tabs = ['about', 'ai'];
+  // Claude tabı: hesabat varsa hamı görür; yoxdursa yalnız onu işə sala bilən.
+  if (p.aiReport || (p.can && p.can.assess)) tabs.push('claude');
+  tabs.push('fin', 'prod', 'inv');
   if (['deal', 'prod', 'sales'].includes(p.status)) tabs.push('deal');
   if (p.participant) tabs.push('docs', 'chat');
   return tabs;
@@ -85,6 +88,7 @@ function tabBody(p) {
   switch (S.tab) {
     case 'about': return aboutTab(p);
     case 'ai': return assessTab(p);
+    case 'claude': return claudeTab(p);
     case 'fin': return finTab(p);
     case 'prod': return prodTab(p);
     case 'inv': return invTab(p);
@@ -108,11 +112,70 @@ function aboutTab(p) {
       <div class="kv"><span>${esc(t('ab_st'))}</span><b>${badge(p.status)}</b></div>
       <div class="kv"><span>${esc(t('ab_rating'))}</span><b>${stars(p.rating)}</b></div>
       <div class="kv"><span>${esc(t('ab_preorders'))}</span><b>${num(p.demand)}</b></div>
+      <div class="kv"><span>${esc(t('ab_interest'))}</span><b>${num(p.interest)}</b></div>
       <div class="kv"><span>${esc(t('ad_trust'))} (${esc(t('p_author'))})</span><b>${trustBar(p.authorTrust)}</b></div>
     </div>
   </div>
+  ${isManager(p) ? shareCard(p) : ''}
+  ${isManager(p) ? interestCard(p) : ''}
   ${p.can.preorder ? preorderCard(p) : ''}
   ${p.can.edit ? editCard(p) : ''}`;
+}
+
+/* Layihəni idarə edən: müəllif və ya admin. */
+function isManager(p) { return S.me.role === 'admin' || p.authorId === S.me.id; }
+
+/* Açıq linki paylaşmaq — tələbin platformadan kənar yoxlanışı. */
+function shareCard(p) {
+  const url = publicUrl(p.id);
+  return `
+  <div class="card sharecard" style="margin-top:14px">
+    <h3>📣 ${esc(t('sh_title'))}</h3>
+    <p class="muted" style="font-size:13px;margin:4px 0 12px">${esc(t('sh_sub'))}</p>
+    ${p.isPublic ? `
+      <div class="sharerow">
+        <input id="sh_url" value="${esc(url)}" readonly onclick="this.select()">
+        <button class="btn btn-primary btn-sm" onclick="copyShare()">${esc(t('sh_copy'))}</button>
+        <a class="btn btn-ghost btn-sm" href="${esc(url)}" target="_blank" rel="noopener">${esc(t('sh_open'))}</a>
+      </div>
+      <div class="pillrow" style="margin-top:10px">
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+           href="https://wa.me/?text=${encodeURIComponent(p.title + ' — ' + url)}">WhatsApp</a>
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+           href="https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(p.title)}">Telegram</a>
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+           href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}">Facebook</a>
+      </div>` : `<div class="empty" style="padding:12px">${esc(t('sh_notYet'))}</div>`}
+  </div>`;
+}
+
+async function copyShare() {
+  const el = document.getElementById('sh_url');
+  if (!el) return;
+  try {
+    await navigator.clipboard.writeText(el.value);
+  } catch (_) {
+    el.select();
+    document.execCommand('copy'); // köhnə brauzerlər / HTTP üçün
+  }
+  toast(t('sh_copied'));
+}
+
+function interestCard(p) {
+  const list = p.interestList || [];
+  return `
+  <div class="card" style="margin-top:14px">
+    <h3>🙋 ${esc(t('it_title'))} <span class="muted" style="font-weight:500">(${list.length})</span></h3>
+    ${list.length ? `<div class="tablewrap" style="margin-top:8px"><table class="tbl">
+      <thead><tr><th>${esc(t('pub_name'))}</th><th>${esc(t('pub_contact'))}</th>
+        <th>${esc(t('pre_qty'))}</th><th>${esc(t('ad_created'))}</th></tr></thead>
+      <tbody>${list.map((i) => `<tr>
+        <td><b>${esc(i.name)}</b>${i.note ? `<div class="rowsub">${esc(i.note)}</div>` : ''}</td>
+        <td class="mono">${esc(i.contact)}</td>
+        <td>${num(i.qty)}</td>
+        <td class="muted">${fdate(i.createdAt)}</td></tr>`).join('')}</tbody>
+    </table></div>` : `<div class="empty" style="padding:14px">${esc(t('it_empty'))}</div>`}
+  </div>`;
 }
 
 function preorderCard(p) {
@@ -227,6 +290,111 @@ async function runAssess(id) {
       el.insertAdjacentHTML('beforeend', `<div class="brk">${chips}</div>`);
     }
   } catch (err) { toastErr(err); }
+}
+
+/* ------------------------------------------------- Claude ilə təhlil */
+let aiBusy = false;
+
+function claudeTab(p) {
+  const r = p.aiReport;
+  const canRun = p.can.aiAssess;
+  const runBtn = (label) => canRun
+    ? `<button class="btn btn-primary btn-sm" id="aibtn" onclick="runClaude(${p.id})" ${aiBusy ? 'disabled' : ''}>✨ ${esc(t(label))}</button>`
+    : '';
+  const busy = `<div class="aibusy" id="aibusy" ${aiBusy ? '' : 'hidden'}><span class="spin"></span>${esc(t('ai2_running'))}</div>`;
+
+  if (!r) {
+    return `<div class="card">
+      <h3>✨ ${esc(t('ai2_title'))}</h3>
+      <p class="muted" style="font-size:14px;margin:6px 0 14px">${esc(t('ai2_sub'))}</p>
+      ${canRun ? runBtn('ai2_run') + busy
+        : `<div class="empty">${esc(t(p.aiEnabled ? 'ai2_noneOther' : 'e_aiOff'))}</div>`}
+    </div>`;
+  }
+
+  const verdictColor = { go: 'var(--seller)', refine: 'var(--maker)', stop: 'var(--admin)' }[r.verdict] || 'var(--muted)';
+  const score = Math.max(0, Math.min(100, Number(r.score) || 0));
+  const list = (items) => (items || []).length
+    ? `<ul class="ailist">${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
+    : `<div class="empty">${esc(t('g_none'))}</div>`;
+
+  return `
+  <div class="card aihead">
+    <div class="aiverdict" style="--c:${verdictColor}">
+      <div class="aiscore"><b>${score}</b><span>/100</span></div>
+      <div>
+        <div class="muted" style="font-size:12px">${esc(t('ai2_verdict'))}</div>
+        <div class="aiv">${esc(t('v_' + r.verdict))}</div>
+        <div class="muted" style="font-size:12px;margin-top:2px">
+          ${esc(t('ai2_formula'))}: ${p.rating || '—'} · ${esc(t('ai2_at'))}: ${fdatetime(p.aiAt)}
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:12px;font-size:14.5px;line-height:1.55">${esc(r.summary)}</p>
+    ${canRun ? `<div style="margin-top:12px">${runBtn('ai2_again')}</div>${busy}` : ''}
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h3>${esc(t('ai2_market'))}</h3>
+      <div class="kv"><span>${esc(t('ai2_size'))}</span><b>${esc(r.market?.size || '—')}</b></div>
+      <div class="kv"><span>${esc(t('ai2_trend'))}</span><b>${esc(r.market?.trend || '—')}</b></div>
+      ${r.market?.notes ? `<p class="muted" style="font-size:13px;margin-top:8px">${esc(r.market.notes)}</p>` : ''}
+      <h3 style="margin-top:16px">${esc(t('ai2_audience'))}</h3>
+      <p class="muted" style="font-size:13.5px;margin-top:4px">${esc(r.audience || '—')}</p>
+    </div>
+    <div class="card">
+      <h3>${esc(t('ai2_pricing'))}</h3>
+      <p class="muted" style="font-size:13.5px;margin-top:4px">${esc(r.pricing || '—')}</p>
+      <h3 style="margin-top:16px">${esc(t('ai2_competitors'))}</h3>
+      ${(r.competitors || []).length ? r.competitors.map((c) => `
+        <div class="kv" style="align-items:flex-start">
+          <span>${esc(c.name)}${c.note ? `<div class="rowsub">${esc(c.note)}</div>` : ''}</span>
+          <b style="white-space:nowrap">${esc(c.price)}</b>
+        </div>`).join('') : `<div class="empty">${esc(t('g_none'))}</div>`}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>${esc(t('ai2_risks'))}</h3>
+    ${(r.risks || []).length ? r.risks.map((k) => `
+      <div class="airisk sev-${esc(k.severity)}">
+        <span class="sev">${esc(t('sev_' + k.severity))}</span>
+        <div><b>${esc(k.title)}</b><div class="muted" style="font-size:13px">${esc(k.detail)}</div></div>
+      </div>`).join('') : `<div class="empty">${esc(t('g_none'))}</div>`}
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>${esc(t('ai2_improve'))}</h3>${list(r.improvements)}</div>
+    <div class="card"><h3>${esc(t('ai2_next'))}</h3>${list(r.nextSteps)}</div>
+  </div>
+
+  ${(r.sources || []).length ? `
+  <div class="card" style="margin-top:14px">
+    <h3>${esc(t('ai2_sources'))}</h3>
+    <ul class="ailist aisrc">${r.sources.filter((s) => /^https?:\/\//i.test(s.url || '')).map((s) => `
+      <li><a href="${esc(s.url)}" target="_blank" rel="noopener nofollow">${esc(s.title || s.url)}</a></li>`).join('')}</ul>
+  </div>` : ''}`;
+}
+
+async function runClaude(id) {
+  if (aiBusy) return;
+  aiBusy = true;
+  const btn = document.getElementById('aibtn');
+  const box = document.getElementById('aibusy');
+  if (btn) btn.disabled = true;
+  if (box) box.hidden = false;
+  try {
+    await API.post(`/projects/${id}/ai-assess`, {});
+    aiBusy = false;
+    toast(t('g_saved'));
+    if (S.project && S.project.id === id) await reloadProject();
+  } catch (err) {
+    aiBusy = false;
+    if (btn) btn.disabled = false;
+    if (box) box.hidden = true;
+    toastErr(err);
+  }
 }
 
 /* ------------------------------------------------------- maliyyə modeli */
@@ -350,9 +518,12 @@ function invTab(p) {
           ${i.note ? `<div class="rowsub">${esc(i.note)}</div>` : ''}
         </div>
         <div class="acts">
+          ${canAct && i.status === 'pending' && p.status === 'findinv' ? `
+            <button class="btn btn-ok btn-sm" onclick="investAction(${i.id},'accept')">${esc(t('o_accept'))}</button>` : ''}
           ${canAct && i.status === 'pending' ? `
-            <button class="btn btn-ok btn-sm" onclick="investAction(${i.id},'accept')">${esc(t('o_accept'))}</button>
             <button class="btn btn-ghost btn-sm" onclick="investAction(${i.id},'reject')">${esc(t('o_reject'))}</button>` : ''}
+          ${!canAct && i.investorId === S.me.id && i.status === 'pending' ? `
+            <button class="btn btn-ghost btn-sm" onclick="investAction(${i.id},'withdraw')">${esc(t('o_withdraw'))}</button>` : ''}
         </div>
       </div>`).join('') : `<div class="empty">${esc(t('iv_empty'))}</div>`}
   </div>`;
@@ -397,7 +568,10 @@ function dealTab(p) {
       <div class="kv"><span>${esc(t('d_i_t3'))}</span><b>${money(p.invested)}</b></div>
       <div class="kv"><span>${esc(t('f_royalty'))}</span><b>${p.royalty}%</b></div>
     </div>
-  </div>`;
+  </div>
+  ${p.can.contract ? `<div style="margin-top:14px">
+    <a class="btn btn-primary btn-sm" href="#/contract/${p.id}">${esc(t('ct_btn'))}</a>
+  </div>` : ''}`;
 }
 
 /* ---------------------------------------------------------- sənədlər */

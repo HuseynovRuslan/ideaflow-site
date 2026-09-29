@@ -131,8 +131,44 @@ hesabatları buradan qurulur (`projects.updated_at` hər redaktədə dəyişir, 
 | Kateqoriya trendi | 15 |
 
 Nəticə ilə birlikdə komponentlərin payı da qaytarılır və interfeysdə göstərilir.
-Maketdə bu, təsadüfi ədəd idi. Real LLM çağırışı lazım olsa, `Assess.Run`-un imzası
-dəyişmədən əvəz edilə bilər.
+«Təsdiqlənmiş tələb»ə satıcıların ilkin sifarişi ilə yanaşı açıq səhifədəki alıcı marağı da daxildir.
+
+### Claude ilə dərin təhlil
+
+`POST /api/projects/{id}/ai-assess` (`backend/Ai.cs`) — formulun **yanında**, onu əvəz etmir.
+Claude (`claude-opus-5-5`) veb-axtarışla real rəqibləri, qiymətləri və sertifikasiya
+tələblərini tapır və sabit JSON sxemi ilə hesabat qaytarır: xülasə, qərar (go/refine/stop),
+0–100 bal, bazar, auditoriya, rəqiblər, risklər, təkmilləşdirmə, növbəti addımlar, mənbələr.
+Hesabat istifadəçinin dilində yazılır və `projects.ai_report`-da saxlanılır.
+
+- `ANTHROPIC_API_KEY` serverdəki `.env`-də yoxdursa funksiya sönülüdür, düymə görünmür.
+- Hər çağırış pulludur: layihə başına 2 dəqiqədə bir, istifadəçi başına gündə
+  `ai_daily_limit` dəfə (admin paneldə, default 5). Admin üçün limit yoxdur.
+- Eyni layihə üçün paralel ikinci çağırış 409 qaytarır.
+
+## Açıq layihə səhifəsi (`/p/{id}`)
+
+Qeydiyyatsız açılır — müəllif linki sosial şəbəkədə paylaşır, adi alıcı «Mən alardım»
+deyir (`interests` cədvəli). Yalnız kataloqda açıq mərhələlər (`demand` və sonrası)
+göstərilir. Server `/p/{id}` üçün OG teqlərini HTML-ə yerləşdirir ki, WhatsApp/Telegram
+önizləməsində məhsulun adı çıxsın. Spam qoruması: IP üzrə dəqiqədə 6 sorğu, gizli
+«honeypot» sahəsi, eyni kontakt təkrar yazanda yeni sətir yaranmır. Kontaktları yalnız
+müəllif və admin görür.
+
+## Müqavilə layihəsi
+
+`deal`, `prod`, `sales` mərhələlərində sövdələşmənin tərəfləri (müəllif, admin, qəbul
+edilmiş istehsalçı və investorlar) `#/contract/{id}`-də avtomatik tərtib olunmuş müqavilə
+layihəsini görür və brauzerdə «Çap et → PDF» ilə saxlayır. Sənəddə açıq yazılır ki,
+hüquqi qüvvəsi yoxdur və hüquqşünas yoxlamalıdır.
+
+## Admin yükü
+
+- İcmalda təsdiq növbəsi: gözləyən hesablar və qiymətləndirmə gözləyən layihələr
+  bir kliklə təsdiq/rədd olunur, «Hamısını təsdiqlə» düyməsi var.
+- İstifadəçilər cədvəlində checkbox ilə toplu təsdiq (`POST /api/admin/users/bulk-status`).
+- Parametrlərdə rol üzrə **avtomatik təsdiq** (`auto_author`, `auto_seller`, ...) —
+  default hamısı söndürülüb.
 
 ## Lokal işə salma
 
@@ -167,4 +203,6 @@ Yalnız backend (baza ayrıca lazımdır): `cd backend && dotnet run` — fronte
 - Ödəniş inteqrasiyası yoxdur — komissiyalar və eskrou hesablama modelidir.
 - Bildirişlər səhifə yenilənəndə çəkilir (push/WebSocket yoxdur).
 - **Backend + baza ucdan-uca canlı yoxlanılmayıb** — lokal Docker əlçatmaz olduğu üçün
-  yalnız build, konfiq və frontend yoxlanılıb. İlk deploy-dan sonra tam axın keçirilməlidir.
+  yalnız build, konfiq və frontend (saxta API ilə) yoxlanılıb. Deploy-dan sonra tam axın
+  keçirilməlidir. İlk versiyada layihə detal sorğusu (`GET /api/projects/{id}`) səhv SQL
+  qururdu və hər layihə kartı 500 qaytarırdı — düzəldilib.

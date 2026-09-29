@@ -76,11 +76,17 @@ function num(v) {
   return n.toLocaleString('en-US').replace(/,/g, ' ');
 }
 
+/* Brauzerlərin çoxunda az-AZ üçün ay adları yoxdur («2026 M09 20» çıxır),
+   ona görə Azərbaycan dilində tarixi özümüz qururuq. */
+const AZ_MONTHS = ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avq', 'sen', 'okt', 'noy', 'dek'];
+const pad2 = (n) => String(n).padStart(2, '0');
+
 function fdate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d)) return '—';
-  return d.toLocaleDateString(S.lang === 'en' ? 'en-GB' : S.lang === 'ru' ? 'ru-RU' : 'az-AZ',
+  if (S.lang !== 'en' && S.lang !== 'ru') return `${pad2(d.getDate())} ${AZ_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return d.toLocaleDateString(S.lang === 'en' ? 'en-GB' : 'ru-RU',
     { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -88,7 +94,10 @@ function fdatetime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d)) return '—';
-  return d.toLocaleString(S.lang === 'en' ? 'en-GB' : S.lang === 'ru' ? 'ru-RU' : 'az-AZ',
+  if (S.lang !== 'en' && S.lang !== 'ru') {
+    return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+  return d.toLocaleString(S.lang === 'en' ? 'en-GB' : 'ru-RU',
     { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 

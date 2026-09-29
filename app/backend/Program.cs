@@ -23,6 +23,15 @@ builder.Services.AddRateLimiter(o =>
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
         }));
+    // Açıq «Mən alardım» forması — qeydiyyatsızdır, ona görə daha sərt.
+    o.AddPolicy("public", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        Auth.ClientIp(ctx),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 6,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
 });
 
 var app = builder.Build();
@@ -94,6 +103,8 @@ Deals.Map(app);
 Extras.Map(app);
 DashApi.Map(app);
 AdminApi.Map(app);
+PublicApi.Map(app);
+Contract.Map(app);
 
 app.MapGet("/api/health", () => Results.Json(new { ok = true, at = DateTime.UtcNow }));
 

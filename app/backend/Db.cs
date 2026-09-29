@@ -194,5 +194,27 @@ public static class Db
       key   text primary key,
       value text not null
     );
+
+    -- Claude ilə dərin təhlil. Formul reytinqi (rating) yerində qalır; bu, onun
+    -- yanında göstərilən mətn hesabatıdır (JSON), hansı dildə yazıldığı ilə birlikdə.
+    alter table projects add column if not exists ai_report text;
+    alter table projects add column if not exists ai_lang   text not null default '';
+    alter table projects add column if not exists ai_at     timestamptz;
+
+    -- Açıq layihə səhifəsindən (qeydiyyatsız) «Mən alardım» deyən adi alıcılar.
+    -- Satıcıların B2B ilkin sifarişindən (preorders) ayrı saxlanılır: bu, son istehlakçı
+    -- tələbinin sübutudur və kontaktlar yalnız müəllifə və adminə açılır.
+    create table if not exists interests (
+      id         serial primary key,
+      project_id int         not null references projects(id) on delete cascade,
+      name       text        not null,
+      contact    text        not null,
+      qty        int         not null default 1 check (qty between 1 and 1000),
+      note       text        not null default '',
+      ip         text        not null default '',
+      created_at timestamptz not null default now()
+    );
+    create unique index if not exists interests_uniq on interests (project_id, lower(contact));
+    create index if not exists interests_project on interests (project_id, id desc);
     """;
 }

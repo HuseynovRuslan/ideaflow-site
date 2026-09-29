@@ -33,10 +33,18 @@ public static class AuthApi
                 if (await dup.ExecuteScalarAsync() is not null) return Api.Err(409, "e_dupEmail");
             }
 
+            // Admin bu rol üçün avtomatik təsdiqi açıbsa hesab dərhal aktiv olur.
+            var auto = (await Settings.AllAsync(c)).GetValueOrDefault("auto_" + role) == "1";
+            var status = auto ? "active" : "pending";
+
+            // «@st::text» — parametr iki yerdə işlənir; tip açıq verilməsə Postgres
+            // CASE daxilindəki istifadədən tipi çıxara bilmir.
             await using var ins = new NpgsqlCommand("""
-                insert into users (email, pass_hash, full_name, role, status, company, phone, lang)
-                values (@e, @p, @n, @r, 'pending', @co, @ph, @l) returning id
+                insert into users (email, pass_hash, full_name, role, status, company, phone, lang, approved_at)
+                values (@e, @p, @n, @r, @st::text, @co, @ph, @l,
+                        case when @st::text = 'active' then now() end) returning id
                 """, c);
+            ins.Parameters.AddWithValue("st", status);
             ins.Parameters.AddWithValue("e", email);
             ins.Parameters.AddWithValue("p", Passwords.Hash(pass));
             ins.Parameters.AddWithValue("n", name);
@@ -46,13 +54,13 @@ public static class AuthApi
             ins.Parameters.AddWithValue("l", lang);
             var id = (int)(await ins.ExecuteScalarAsync())!;
 
-            await Audit.LogAsync(c, id, "register", "user", id, new { role }, ctx);
+            await Audit.LogAsync(c, id, "register", "user", id, new { role, auto }, ctx);
 
             // Hesab «pending» olsa da sessiya açırıq: istifadəçi öz statusunu görsün,
             // gözləmə ekranında qalsın. API-nin qalanı RequireActive ilə qapalıdır.
             var token = await Auth.CreateSessionAsync(c, id, ctx);
             Auth.SetCookie(ctx, token);
-            return Results.Json(new { ok = true, status = "pending" });
+            return Results.Json(new { ok = true, status });
         });
 
         // --------------------------------------------------------------- giriş

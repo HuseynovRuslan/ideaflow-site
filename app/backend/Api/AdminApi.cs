@@ -132,6 +132,45 @@ public static class AdminApi
             return Results.Json(new { ok = true });
         });
 
+        // Toplu təsdiq / rədd — gözləmə siyahısını bir kliklə boşaltmaq üçün.
+        // Adminlərə və özünə toxunmur (tək-tək endpoint-dəki qaydaların eynisi).
+        g.MapPost("/users/bulk-status", async (HttpContext ctx, JsonElement body) =>
+        {
+            var (u, fail) = Api.RequireActive(ctx, "admin");
+            if (fail is not null) return fail;
+
+            var to = Api.Str(body, "status", 20);
+            if (to is not ("active" or "rejected")) return Api.Err(400, "e_status");
+            if (!body.TryGetProperty("ids", out var idsEl) || idsEl.ValueKind != JsonValueKind.Array)
+                return Api.Err(400, "e_body");
+            var ids = idsEl.EnumerateArray()
+                .Where(e => e.ValueKind == JsonValueKind.Number && e.TryGetInt32(out _))
+                .Select(e => e.GetInt32()).Where(i => i != u!.Id).Distinct().Take(500).ToArray();
+            if (ids.Length == 0) return Results.Json(new { ok = true, count = 0 });
+
+            await using var c = await Db.OpenAsync();
+            var changed = new List<int>();
+            await using (var cmd = new NpgsqlCommand("""
+                update users set status = @s,
+                  approved_at = case when @s = 'active' then now() else approved_at end,
+                  approved_by = case when @s = 'active' then @by else approved_by end
+                where id = any(@ids) and role <> 'admin' and status = 'pending'
+                returning id
+                """, c))
+            {
+                cmd.Parameters.AddWithValue("s", to);
+                cmd.Parameters.AddWithValue("by", u!.Id);
+                cmd.Parameters.AddWithValue("ids", ids);
+                await using var r = await cmd.ExecuteReaderAsync();
+                while (await r.ReadAsync()) changed.Add(r.GetInt32(0));
+            }
+            if (to == "rejected")
+                foreach (var id in changed) await Auth.DropAllSessionsAsync(c, id);
+
+            await Audit.LogAsync(c, u.Id, "user_bulk_status", "user", null, new { to, ids = changed }, ctx);
+            return Results.Json(new { ok = true, count = changed.Count });
+        });
+
         g.MapPatch("/users/{id:int}", async (HttpContext ctx, int id, JsonElement body) =>
         {
             var (u, fail) = Api.RequireActive(ctx, "admin");
@@ -334,6 +373,10 @@ public static class Settings
     [
         "fee_production", "fee_investment", "fee_sales", "fee_escrow", "fee_partner",
         "sub_author", "sub_maker", "sub_investor", "sub_seller",
+        // Qeydiyyatda avtomatik aktivləşmə ("1"/"0") — admin hər hesabı əl ilə təsdiqləməsin.
+        "auto_author", "auto_maker", "auto_investor", "auto_seller",
+        // Claude təhlili: bir istifadəçinin gündə neçə dəfə işlədə biləcəyi.
+        "ai_daily_limit",
     ];
 
     private static readonly Dictionary<string, string> Defaults = new()
@@ -341,6 +384,9 @@ public static class Settings
         ["fee_production"] = "5", ["fee_investment"] = "3", ["fee_sales"] = "3",
         ["fee_escrow"] = "1", ["fee_partner"] = "15",
         ["sub_author"] = "29", ["sub_maker"] = "99", ["sub_investor"] = "199", ["sub_seller"] = "99",
+        // Default: heç kim avtomatik keçmir — təhlükəsiz başlanğıc, admin özü açır.
+        ["auto_author"] = "0", ["auto_maker"] = "0", ["auto_investor"] = "0", ["auto_seller"] = "0",
+        ["ai_daily_limit"] = "5",
     };
 
     public static async Task<Dictionary<string, string>> AllAsync(NpgsqlConnection c)

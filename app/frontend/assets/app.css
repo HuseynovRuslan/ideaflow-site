@@ -244,3 +244,138 @@
   [data-theme=dark] .rolepick button{background:var(--surface)}
   [data-theme=dark] .btn-ghost{background:var(--surface)}
   [data-theme=dark] .seg{border-right-color:var(--surface)}
+
+  /* ============================================================
+     Claude təhlili, açıq səhifə, müqavilə, admin növbəsi
+     ============================================================ */
+  .aihead .aiverdict{display:flex;gap:14px;align-items:center}
+  .aiscore{width:74px;height:74px;border-radius:50%;flex:none;display:grid;place-content:center;text-align:center;
+    border:5px solid var(--c);color:var(--c);line-height:1}
+  .aiscore b{font-size:24px;font-weight:880}
+  .aiscore span{font-size:10px;font-weight:700;opacity:.8}
+  .aiv{font-size:18px;font-weight:820;color:var(--c)}
+  .ailist{margin:6px 0 0 18px;font-size:13.5px;line-height:1.55}
+  .ailist li{margin-bottom:5px}
+  .aisrc a{color:var(--accent);word-break:break-word}
+  .airisk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .airisk:last-child{border-bottom:none}
+  .airisk .sev{font-size:10.5px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:6px;flex:none;margin-top:2px;
+    background:var(--soft);color:var(--muted)}
+  .airisk.sev-high .sev{background:color-mix(in srgb,var(--admin) 15%,transparent);color:var(--admin)}
+  .airisk.sev-medium .sev{background:color-mix(in srgb,var(--maker) 15%,transparent);color:var(--maker)}
+  .aibusy{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13.5px;color:var(--muted)}
+  .aibusy[hidden]{display:none}
+  .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .sharecard{border-color:color-mix(in srgb,var(--seller) 40%,var(--line))}
+  .sharerow{display:flex;gap:8px;flex-wrap:wrap}
+  .sharerow input{flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;
+    background:var(--soft);color:var(--ink);font-family:ui-monospace,Consolas,monospace;font-size:13px}
+
+  .qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .qrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .qrow .acts,.qhead .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .checkrow{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;font-weight:600;cursor:pointer}
+  .checkrow input{width:18px;height:18px;accent-color:var(--accent)}
+
+  /* açıq səhifə */
+  .pubwrap{min-height:100vh;max-width:620px;margin:0 auto;padding:16px 16px 40px}
+  .pubtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .pubtop .brand,.ctbrand{display:flex;align-items:center;gap:9px;font-weight:850;font-size:18px}
+  .pubtop .brand .m,.ctbrand .m{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center}
+  .pubcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+  .pubhero{height:150px;display:grid;place-items:center;font-size:64px}
+  .pubbody{padding:20px}
+  .pubbody h1{font-size:26px;font-weight:860;letter-spacing:-.02em;margin:10px 0 2px;line-height:1.15}
+  .pubbody h2{font-size:20px;font-weight:820}
+  .pubprice{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--soft);font-size:14px}
+  .pubprice b{font-size:20px}
+  .pubdescr{margin-top:14px;font-size:15px;line-height:1.6;white-space:pre-wrap}
+  .pubstats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .pubstats div{background:color-mix(in srgb,var(--seller) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--seller) 25%,var(--line));border-radius:12px;padding:12px;text-align:center}
+  .pubstats b{display:block;font-size:24px;font-weight:880;color:var(--seller)}
+  .pubstats span{font-size:12px;color:var(--muted)}
+  .pubfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:8px 2px}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+  /* müqavilə */
+  .ctbar{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;padding:12px 16px;
+    background:var(--surface);border-bottom:1px solid var(--line)}
+  .contract{max-width:820px;margin:20px auto 60px;background:#fff;color:#16202E;padding:48px 56px;
+    border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);font-size:14px;line-height:1.6}
+  .contract header{text-align:center;margin-bottom:26px}
+  .contract .ctbrand{justify-content:center;margin-bottom:14px}
+  .contract h1{font-size:22px;font-weight:840}
+  .contract h2{font-size:15px;font-weight:800;margin:22px 0 8px;padding-bottom:4px;border-bottom:1px solid #E5E1DA}
+  .contract p{margin-bottom:8px;text-align:justify}
+  .ctmeta{color:#5C6775;font-size:13px;margin-top:4px}
+  .ctmuted{color:#5C6775;font-size:12.5px}
+  .ctwarn{background:#FFF6E0;border:1px solid #E8C872;color:#7A5A10;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:22px}
+  .ctparties{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ctparty,.ctsign{border:1px solid #E5E1DA;border-radius:8px;padding:12px 14px}
+  .ctrole{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#5C6775}
+  .ctname{font-weight:800;font-size:14.5px}
+  .cttbl{width:100%;border-collapse:collapse;margin:6px 0 10px}
+  .cttbl td{padding:7px 0;border-bottom:1px dashed #E5E1DA}
+  .cttbl td:last-child{text-align:right}
+  .ctsigns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .ctline{height:46px;border-bottom:1px solid #16202E;margin-bottom:4px}
+  @media print{
+    @page{margin:16mm}
+    body{background:#fff}
+    .ctbar,.toasts{display:none!important}
+    .contract{margin:0;padding:0;border:none;box-shadow:none;max-width:none}
+    .contract h2{break-after:avoid}
+    .ctparty,.ctsign,.cttbl tr{break-inside:avoid}
+  }
+
+  /* ============================================================
+     Mobil: hamburger menyu və dar ekran düzəlişləri
+     ============================================================ */
+  .burger{display:none}
+  .mscrim{display:none}
+  @media(max-width:820px){
+    .burger{display:grid}
+    .topbar{gap:8px;padding:0 12px}
+    .side{display:block;position:fixed;top:60px;left:0;bottom:0;z-index:50;width:260px;overflow-y:auto;
+      transform:translateX(-100%);transition:transform .2s ease;box-shadow:none}
+    body.menu-open .side{transform:none;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    body.menu-open .mscrim{display:block;position:fixed;inset:60px 0 0 0;z-index:45;background:rgba(10,20,30,.4)}
+    .content{padding:16px;max-width:none;min-width:0}
+    .page-h h1{font-size:22px}
+    .phead h1{font-size:20px!important}
+    .phead .ic{width:52px;height:52px;font-size:26px}
+    /* 7 mərhələ dar ekrana sığmır — üfüqi sürüşür */
+    .timeline{overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+    .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    .tabs button{white-space:nowrap}
+    .chartrow .cl{width:100px}
+    .offer{flex-wrap:wrap}
+    .offer .acts{width:100%;display:flex;gap:6px;flex-wrap:wrap}
+    .kv{gap:12px}
+    .kv b{text-align:right}
+    .ndrop{right:8px;width:calc(100vw - 16px);max-width:340px}
+    .toasts{left:12px;right:12px;bottom:12px}
+    .toast{max-width:none}
+    .authwrap{padding:70px 16px 24px}
+    .authcard{padding:22px}
+    .enter{padding:0 16px 40px}
+    .enterCard{padding:20px}
+    .hero{padding:64px 18px 60px}
+    .hero p{font-size:16.5px}
+    .contract{margin:0;padding:24px 18px;border:none;border-radius:0}
+    .ctparties,.ctsigns{grid-template-columns:1fr}
+    /* iOS 16px-dən kiçik inputa fokuslananda səhifəni böyüdür */
+    input,select,textarea,.field input,.field select,.field textarea{font-size:16px}
+  }
+  @media(max-width:520px){
+    .roleSel{display:none}
+    .logo{font-size:16px}
+    .tiles{gap:10px}
+    .tile{padding:12px 14px}
+    .tile .v{font-size:21px}
+    .rolepick{grid-template-columns:1fr}
+    .pubbody h1{font-size:23px}
+    .aihead .aiverdict{align-items:flex-start}
+  }

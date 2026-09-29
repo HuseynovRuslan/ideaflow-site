@@ -52,10 +52,13 @@ public static class Deals
             if (fail is not null) return fail;
 
             await using var c = await Db.OpenAsync();
-            var (projectId, makerId, authorId, status) = await LoadOfferAsync(c, id);
+            var (projectId, makerId, authorId, status, own) = await LoadOfferAsync(c, id);
             if (projectId == 0) return Api.Err(404, "e_notFound");
             if (u!.Role != "admin" && authorId != u.Id) return Api.Err(403, "e_forbidden");
             if (status != "findmaker") return Api.Err(400, "e_stage");
+            // Geri çəkilmiş və ya rədd edilmiş təklif qəbul edilsəydi, layihə istehsalçısız
+            // «investor axtarışı»na keçərdi.
+            if (own != "pending") return Api.Err(409, "e_notPending");
 
             await using var tx = await c.BeginTransactionAsync();
             // Bir layihədə yalnız bir istehsalçı qalır — qalan təkliflər avtomatik rədd edilir
@@ -82,9 +85,11 @@ public static class Deals
             if (fail is not null) return fail;
 
             await using var c = await Db.OpenAsync();
-            var (projectId, _, authorId, _) = await LoadOfferAsync(c, id);
+            var (projectId, _, authorId, _, own) = await LoadOfferAsync(c, id);
             if (projectId == 0) return Api.Err(404, "e_notFound");
             if (u!.Role != "admin" && authorId != u.Id) return Api.Err(403, "e_forbidden");
+            // Qəbul edilmiş təklif sonradan rədd edilə bilməz — layihə artıq ona görə irəliləyib.
+            if (own != "pending") return Api.Err(409, "e_notPending");
 
             await SetSimpleStatus(c, "offers", id, "rejected");
             await Audit.LogAsync(c, u.Id, "offer_reject", "offer", id, null, ctx);
@@ -97,9 +102,10 @@ public static class Deals
             if (fail is not null) return fail;
 
             await using var c = await Db.OpenAsync();
-            var (projectId, makerId, _, _) = await LoadOfferAsync(c, id);
+            var (projectId, makerId, _, _, own) = await LoadOfferAsync(c, id);
             if (projectId == 0) return Api.Err(404, "e_notFound");
             if (makerId != u!.Id) return Api.Err(403, "e_forbidden");
+            if (own != "pending") return Api.Err(409, "e_notPending");
 
             await SetSimpleStatus(c, "offers", id, "withdrawn");
             await Audit.LogAsync(c, u.Id, "offer_withdraw", "offer", id, null, ctx);
@@ -143,11 +149,12 @@ public static class Deals
             if (fail is not null) return fail;
 
             await using var c = await Db.OpenAsync();
-            var (projectId, _, authorId, status) = await LoadInvestmentAsync(c, id);
+            var (projectId, _, authorId, status, own) = await LoadInvestmentAsync(c, id);
             if (projectId == 0) return Api.Err(404, "e_notFound");
             if (u!.Role != "admin" && authorId != u.Id) return Api.Err(403, "e_forbidden");
             // Sövdələşməyə keçid yalnız istehsalçı seçiləndən sonra mümkündür.
             if (status != "findinv") return Api.Err(400, "e_needMaker");
+            if (own != "pending") return Api.Err(409, "e_notPending");
 
             await using var tx = await c.BeginTransactionAsync();
             await SetSimpleStatus(c, "investments", id, "accepted", tx);
@@ -164,12 +171,30 @@ public static class Deals
             if (fail is not null) return fail;
 
             await using var c = await Db.OpenAsync();
-            var (projectId, _, authorId, _) = await LoadInvestmentAsync(c, id);
+            var (projectId, _, authorId, _, own) = await LoadInvestmentAsync(c, id);
             if (projectId == 0) return Api.Err(404, "e_notFound");
             if (u!.Role != "admin" && authorId != u.Id) return Api.Err(403, "e_forbidden");
+            if (own != "pending") return Api.Err(409, "e_notPending");
 
             await SetSimpleStatus(c, "investments", id, "rejected");
             await Audit.LogAsync(c, u.Id, "investment_reject", "investment", id, null, ctx);
+            return Results.Json(new { ok = true });
+        });
+
+        // İnvestor cavab gəlməmiş təklifini geri götürə bilir (istehsalçıda olduğu kimi).
+        app.MapPost("/api/investments/{id:int}/withdraw", async (HttpContext ctx, int id) =>
+        {
+            var (u, fail) = Api.RequireActive(ctx, "investor");
+            if (fail is not null) return fail;
+
+            await using var c = await Db.OpenAsync();
+            var (projectId, investorId, _, _, own) = await LoadInvestmentAsync(c, id);
+            if (projectId == 0) return Api.Err(404, "e_notFound");
+            if (investorId != u!.Id) return Api.Err(403, "e_forbidden");
+            if (own != "pending") return Api.Err(409, "e_notPending");
+
+            await SetSimpleStatus(c, "investments", id, "withdrawn");
+            await Audit.LogAsync(c, u.Id, "investment_withdraw", "investment", id, null, ctx);
             return Results.Json(new { ok = true });
         });
 
@@ -304,32 +329,33 @@ public static class Deals
     }
 
     // ------------------------------------------------------------ köməkçilər
-    private static async Task<(int ProjectId, int MakerId, int AuthorId, string Status)>
+    /// <summary>Status — layihənin statusu, Own — təklifin öz statusu (pending/accepted/...).</summary>
+    private static async Task<(int ProjectId, int MakerId, int AuthorId, string Status, string Own)>
         LoadOfferAsync(NpgsqlConnection c, int offerId)
     {
         await using var cmd = new NpgsqlCommand("""
-            select o.project_id, o.maker_id, p.author_id, p.status
+            select o.project_id, o.maker_id, p.author_id, p.status, o.status
             from offers o join projects p on p.id = o.project_id where o.id = @id
             """, c);
         cmd.Parameters.AddWithValue("id", offerId);
         await using var r = await cmd.ExecuteReaderAsync();
         return await r.ReadAsync()
-            ? (r.GetInt32(0), r.GetInt32(1), r.GetInt32(2), r.GetString(3))
-            : (0, 0, 0, "");
+            ? (r.GetInt32(0), r.GetInt32(1), r.GetInt32(2), r.GetString(3), r.GetString(4))
+            : (0, 0, 0, "", "");
     }
 
-    private static async Task<(int ProjectId, int InvestorId, int AuthorId, string Status)>
+    private static async Task<(int ProjectId, int InvestorId, int AuthorId, string Status, string Own)>
         LoadInvestmentAsync(NpgsqlConnection c, int invId)
     {
         await using var cmd = new NpgsqlCommand("""
-            select i.project_id, i.investor_id, p.author_id, p.status
+            select i.project_id, i.investor_id, p.author_id, p.status, i.status
             from investments i join projects p on p.id = i.project_id where i.id = @id
             """, c);
         cmd.Parameters.AddWithValue("id", invId);
         await using var r = await cmd.ExecuteReaderAsync();
         return await r.ReadAsync()
-            ? (r.GetInt32(0), r.GetInt32(1), r.GetInt32(2), r.GetString(3))
-            : (0, 0, 0, "");
+            ? (r.GetInt32(0), r.GetInt32(1), r.GetInt32(2), r.GetString(3), r.GetString(4))
+            : (0, 0, 0, "", "");
     }
 
     private static async Task SetSimpleStatus(NpgsqlConnection c, string table, int id, string status,
