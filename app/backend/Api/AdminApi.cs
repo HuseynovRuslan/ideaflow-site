@@ -394,7 +394,10 @@ public static class Settings
         var d = new Dictionary<string, string>(Defaults);
         await using var cmd = new NpgsqlCommand("select key, value from settings", c);
         await using var r = await cmd.ExecuteReaderAsync();
-        while (await r.ReadAsync()) d[r.GetString(0)] = r.GetString(1);
+        // Yalnız məlum parametrlər — cədvəldə daxili qeydlər də saxlanılır
+        // (məs. «admin_granted:…»), onlar /api/settings/public ilə hamıya getməsin.
+        while (await r.ReadAsync())
+            if (Known.Contains(r.GetString(0))) d[r.GetString(0)] = r.GetString(1);
         return d;
     }
 

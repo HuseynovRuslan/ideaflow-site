@@ -41,6 +41,7 @@ Db.Init(BuildConnectionString());
 await Db.WaitForDatabaseAsync(TimeSpan.FromSeconds(60), log);
 await Db.MigrateAsync();
 await EnsureAdminAsync(log);
+await GrantListedAdminsAsync(log);
 await CleanupSessionsAsync();
 
 // ---------------------------------------------------------------- keş qaydaları
@@ -168,6 +169,55 @@ static async Task EnsureAdminAsync(ILogger log)
         upd.Parameters.AddWithValue("i", id);
         await upd.ExecuteNonQueryAsync();
         log.LogInformation("Mövcud hesab admin kimi bərpa edildi: {Email}", email);
+    }
+}
+
+/// <summary>
+/// Koddan təyin olunan əlavə adminlər (server sahibinin razılığı ilə, 2026-09-29).
+///
+/// Təhlükəsizlik: saytda e-poçt təsdiqi yoxdur, ona görə siyahıdakı e-poçtla YENİ
+/// qeydiyyat heç vaxt admin olmur. Yalnız tətbiq qalxanda artıq mövcud olan hesab
+/// BİR DƏFƏ yüksəldilir və bu, settings-də qeyd olunur. Hesab sonra silinib kimsə
+/// eyni e-poçtla yenidən qeydiyyatdan keçsə, admin olmayacaq.
+/// </summary>
+static async Task GrantListedAdminsAsync(ILogger log)
+{
+    string[] emails = ["cingizhumbatoff631@gmail.com"];
+
+    await using var c = await Db.OpenAsync();
+    foreach (var email in emails)
+    {
+        var key = "admin_granted:" + email;
+        await using (var done = new NpgsqlCommand("select 1 from settings where key = @k", c))
+        {
+            done.Parameters.AddWithValue("k", key);
+            if (await done.ExecuteScalarAsync() is not null) continue;
+        }
+
+        int id;
+        await using (var upd = new NpgsqlCommand("""
+            update users set role = 'admin', status = 'active', approved_at = coalesce(approved_at, now())
+            where lower(email) = @e returning id
+            """, c))
+        {
+            upd.Parameters.AddWithValue("e", email);
+            var res = await upd.ExecuteScalarAsync();
+            if (res is null)
+            {
+                log.LogInformation("Əlavə admin gözlənilir — hesab hələ yoxdur: {Email}", email);
+                continue;
+            }
+            id = (int)res;
+        }
+
+        await using (var mark = new NpgsqlCommand("insert into settings (key, value) values (@k, @v)", c))
+        {
+            mark.Parameters.AddWithValue("k", key);
+            mark.Parameters.AddWithValue("v", DateTime.UtcNow.ToString("O"));
+            await mark.ExecuteNonQueryAsync();
+        }
+        await Audit.LogAsync(c, null, "admin_grant_code", "user", id, new { email }, null);
+        log.LogInformation("Hesab koddan admin edildi: {Email}", email);
     }
 }
 
