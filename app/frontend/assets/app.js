@@ -14,6 +14,8 @@ const S = {
   tab: 'about',
   project: null,
   renderToken: 0,
+  demo: null,    // admin rol baxışı: 'author' | 'maker' | 'investor' | 'seller'
+  realMe: null,  // demo zamanı adminin özü
 };
 
 /* --------------------------------------------------------------- marşrut */
@@ -33,6 +35,7 @@ async function boot() {
   try {
     S.me = await API.me();
     if (S.me.lang && S.me.lang !== S.lang) setLang(S.me.lang, false);
+    resumeDemo();
   } catch (_) {
     S.me = null; // giriş edilməyib — normal haldır
   }
@@ -111,7 +114,7 @@ function shell(inner) {
   const meta = ROLE_META[S.me.role] || ROLE_META.author;
   const nCount = S.notifs.length;
   document.body.classList.remove('menu-open'); // hər keçiddə mobil menyu bağlanır
-  $('#app').innerHTML = `
+  $('#app').innerHTML = `${demoBanner()}
   <div class="topbar">
     <button class="ticon burger" onclick="toggleMenu()" aria-label="${esc(t('nav_menu'))}">☰</button>
     <a class="logo" href="#/app"><span class="m">${logoSvg()}</span>IdeaFlow</a>
@@ -357,6 +360,9 @@ async function doRegister(e) {
 
 async function doLogout() {
   try { await API.logout(); } catch (_) { /* onsuz da çıxırıq */ }
+  S.demo = null;
+  S.realMe = null;
+  try { sessionStorage.removeItem('if_demo'); } catch (_) { /* gizli rejim */ }
   S.me = null;
   S.notifs = [];
   go('#/');

@@ -13,6 +13,9 @@ class ApiError extends Error {
 
 const API = {
   async req(path, opts = {}) {
+    // Admin rol baxışı (demo): cavablar brauzerdəki nümunələrdən gəlir, serverə
+    // heç nə getmir. Çıxış istisnadır — admin həqiqətən çıxa bilsin.
+    if (typeof S !== 'undefined' && S.demo && path !== '/auth/logout') return Demo.handle(path, opts);
     let res;
     try {
       res = await fetch('/api' + path, { credentials: 'same-origin', ...opts });

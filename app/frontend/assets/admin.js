@@ -5,7 +5,7 @@
 
 const ADMIN_TABS = [
   ['', 'ad_overview'], ['users', 'ad_users'], ['projects', 'ad_projects'],
-  ['audit', 'ad_audit'], ['settings', 'ad_settings'],
+  ['audit', 'ad_audit'], ['settings', 'ad_settings'], ['views', 'ad_views'],
 ];
 
 const A = { userStatus: 'all', userRole: 'all', userQ: '' };
@@ -28,7 +28,7 @@ async function renderAdmin(parts, token) {
   try {
     const body = await ({
       '': adminOverview, users: adminUsers, projects: adminProjects,
-      audit: adminAudit, settings: adminSettings,
+      audit: adminAudit, settings: adminSettings, views: adminViews,
     }[sub] || adminOverview)();
     if (token !== S.renderToken) return;
     const el = document.getElementById('adminbody');
@@ -328,6 +328,26 @@ function askDeleteProject(id) {
     closeModal();
     await reloadAdmin();
   });
+}
+
+/* ============================= ROL BAXIŞI ============================= */
+/* Hər rolun interfeysi nümunə məlumatla (demo.js) — real hesaba toxunmadan. */
+async function adminViews() {
+  const roles = ['author', 'maker', 'investor', 'seller'];
+  return `
+  <p class="muted" style="font-size:13.5px;margin-bottom:14px">${esc(t('vw_sub'))}</p>
+  <div class="grid g2">
+    ${roles.map((r) => {
+      const meta = ROLE_META[r];
+      return `<div class="card vwcard" style="--c:${meta.color}">
+        <div class="vwhead"><span class="vwic">${meta.emoji}</span>
+          <div><h3 style="margin:0">${esc(rl(r))}</h3>
+          <div class="muted" style="font-size:12.5px">${esc(t('rd_' + r))}</div></div></div>
+        <p class="muted" style="font-size:13px;margin:10px 0 14px">${esc(t('vw_' + r))}</p>
+        <button class="btn btn-primary btn-sm" onclick="startDemo('${r}')">👁 ${esc(t('vw_open'))}</button>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 /* ================================ AUDİT ================================ */

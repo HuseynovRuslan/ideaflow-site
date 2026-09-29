@@ -628,6 +628,16 @@ const DICT={
   ad_autoSub:['Seçilmiş rollar üçün yeni hesab admin gözləmədən dərhal aktivləşir. İnvestor və istehsalçı üçün əl ilə yoxlama tövsiyə olunur.','Для выбранных ролей новый аккаунт активируется сразу, без ожидания админа. Инвесторов и производителей рекомендуется проверять вручную.','New accounts for the selected roles are activated immediately. Manual review is recommended for investors and manufacturers.'],
   ad_ai:['Claude təhlili','Анализ Claude','Claude analysis'],
   ad_aiLimit:['Gündəlik limit (bir istifadəçi üçün)','Дневной лимит (на пользователя)','Daily limit (per user)'],
+  ad_views:['👁 Rol baxışı','👁 Просмотр ролей','👁 Role preview'],
+  vw_sub:['Hər rolun saytı necə gördüyünə baxın: menyu, kabinet, layihə kartları, formalar. Məlumatlar nümunədir — real istifadəçilərə toxunulmur və demo rejimində heç nə saxlanmır.','Посмотрите, как видит сайт каждая роль: меню, кабинет, карточки проектов, формы. Данные демонстрационные — реальные пользователи не затрагиваются, в демо-режиме ничего не сохраняется.','See how each role sees the site: menu, dashboard, project cards, forms. The data is sample data — real users are not touched and nothing is saved in demo mode.'],
+  vw_open:['Bu rolun gözü ilə bax','Смотреть глазами этой роли','View as this role'],
+  vw_author:['Öz ideyalarını görür, Claude təhlili, paylaşma linki, alıcı marağı, gələn təklif və investisiyaları qəbul edir.','Видит свои идеи, анализ Claude, ссылку для шаринга, интерес покупателей, принимает предложения и инвестиции.','Sees own ideas, Claude analysis, share link, buyer interest; accepts offers and investments.'],
+  vw_maker:['Tələb mərhələsindəki layihələri görür və istehsal təklifi verir. Rəqib zavodların qiymətlərini görmür.','Видит проекты на этапе спроса и отправляет предложения. Цены конкурентов не видит.','Sees projects in demand stage and sends production offers. Cannot see competitors’ prices.'],
+  vw_investor:['İstehsalçısı seçilmiş layihələri görür və investisiya təklif edir. Portfel və sövdələşmə müqaviləsi.','Видит проекты с выбранным производителем и предлагает инвестиции. Портфель и договор сделки.','Sees projects with a chosen manufacturer and offers investment. Portfolio and deal contract.'],
+  vw_seller:['Kataloqdakı məhsulları görür və ilkin sifarişlə rezerv edir.','Видит товары в каталоге и резервирует их предзаказом.','Sees catalogue products and reserves them with pre-orders.'],
+  vw_banner:['Demo: saytı «{role}» kimi görürsünüz. Məlumatlar nümunədir, heç nə saxlanmır.','Демо: вы видите сайт как «{role}». Данные демонстрационные, ничего не сохраняется.','Demo: you are viewing the site as “{role}”. Sample data, nothing is saved.'],
+  vw_exit:['Admin panelə qayıt','Вернуться в админку','Back to admin'],
+  e_demo:['Demo rejimi — dəyişiklik saxlanmır','Демо-режим — изменения не сохраняются','Demo mode — changes are not saved'],
   ad_aiNote:['Hər təhlil pulludur (Anthropic API). Admin üçün limit yoxdur.','Каждый анализ платный (Anthropic API). Для админа лимита нет.','Each analysis is billed (Anthropic API). No limit for admins.'],
 };
 

@@ -19,7 +19,7 @@ async function renderContract(id, token) {
   }
   if (token !== S.renderToken) return;
   document.title = d.project.number + ' — ' + d.project.title;
-  $('#app').innerHTML = `
+  $('#app').innerHTML = `${demoBanner()}
     <div class="ctbar">
       <a class="btn btn-ghost btn-sm" href="#/project/${id}">${esc(t('ct_back'))}</a>
       <div class="spacer"></div>
