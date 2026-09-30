@@ -7,7 +7,7 @@ namespace IdeaFlow;
 public static class Rules
 {
     public static readonly string[] Roles = ["author", "maker", "investor", "seller"];
-    public static readonly string[] Categories = ["electronics", "home", "sport", "gadgets", "eco"];
+    public static readonly string[] Categories = ["electronics", "home", "sport", "gadgets", "eco", "apparel"];
 
     /// <summary>İdeyadan satışa qədər sıralı mərhələlər (rejected bura daxil deyil).</summary>
     public static readonly string[] Flow =

@@ -113,6 +113,7 @@ function aboutTab(p) {
       <div class="kv"><span>${esc(t('ab_rating'))}</span><b>${stars(p.rating)}</b></div>
       <div class="kv"><span>${esc(t('ab_preorders'))}</span><b>${num(p.demand)}</b></div>
       <div class="kv"><span>${esc(t('ab_interest'))}</span><b>${num(p.interest)}</b></div>
+      ${p.stock ? `<div class="kv"><span>📦 ${esc(t('ab_stock'))}</span><b style="color:var(--seller)">${num(p.stock)}</b></div>` : ''}
       <div class="kv"><span>${esc(t('ad_trust'))} (${esc(t('p_author'))})</span><b>${trustBar(p.authorTrust)}</b></div>
     </div>
   </div>
@@ -226,8 +227,10 @@ function editCard(p) {
     <div class="grid g2">
       <div class="field"><label>${esc(t('f_moq'))}</label>
         <input id="ed_moq" type="number" min="0" value="${p.moq ?? ''}"></div>
-      <div class="field"><label>${esc(t('f_royalty'))} (%)</label>
-        <input id="ed_royalty" type="number" min="0" max="50" value="${p.royalty}"></div>
+      ${S.me.role === 'admin' ? `<div class="field"><label>${esc(t('f_royalty'))} (%)</label>
+        <input id="ed_royalty" type="number" min="0" max="50" value="${p.royalty}"></div>`
+        : `<div class="field"><label>${esc(t('f_royalty'))}</label>
+        <div class="muted" style="padding:11px 0;font-size:14px">${esc(royaltyL(p))} · ${esc(t('roy_adminNote'))}</div></div>`}
     </div>
     <button class="btn btn-primary btn-sm" onclick="saveProject(${p.id})">${esc(t('ad_save'))}</button>
   </div>`;
@@ -238,7 +241,8 @@ async function saveProject(id) {
     await API.patch('/projects/' + id, {
       title: val('ed_title'), descr: val('ed_descr'),
       price: numVal('ed_price'), unitCost: numVal('ed_cost'),
-      moq: numVal('ed_moq'), royalty: numVal('ed_royalty'),
+      moq: numVal('ed_moq'),
+      ...(S.me.role === 'admin' ? { royalty: numVal('ed_royalty') } : {}),
     });
     toast(t('g_saved'));
     await reloadProject();
@@ -408,14 +412,14 @@ function finTab(p) {
       <div class="kv"><span>${esc(t('f_cost'))}</span><b>${money(p.unitCost)}</b></div>
       <div class="kv"><span>${esc(t('f_price'))}</span><b>${money(p.price)}</b></div>
       <div class="kv"><span>${esc(t('f_moq'))}</span><b>${p.moq ? num(p.moq) : '—'}</b></div>
-      <div class="kv"><span>${esc(t('f_royalty'))}</span><b>${p.royalty}%</b></div>
+      <div class="kv"><span>${esc(t('f_royalty'))}</span><b>${esc(royaltyL(p))}</b></div>
       <div class="kv"><span>${esc(t('as_margin'))}</span><b>${margin === null ? '—' : margin + '%'}</b></div>
     </div>
     <div class="card">
       <h3>${esc(t('f_split'))}</h3>
       <div class="bar">
         <div class="seg" style="background:var(--platform);width:5%">5%</div>
-        <div class="seg" style="background:var(--author);width:${p.royalty}%">${p.royalty}%</div>
+        ${p.royalty > 0 ? `<div class="seg" style="background:var(--author);width:${p.royalty}%">${p.royalty}%</div>` : ''}
         <div class="seg" style="background:var(--investor);width:26%">26%</div>
         <div class="seg" style="background:var(--seller);width:${Math.max(10, 69 - p.royalty)}%">${esc(t('f_rest'))}</div>
       </div>
@@ -450,7 +454,7 @@ function prodTab(p) {
           <b>${esc(o.makerCompany || o.makerName)}</b>
           <span class="muted" style="font-size:12px"> · 🛡 ${o.makerTrust}</span>
           <div class="muted" style="font-size:12.5px">
-            ${esc(t('pr_price'))} ${money(o.price)} · MOQ ${num(o.moq)} · ${o.days} ${esc(t('pr_days'))}
+            ${esc(t('pr_price'))} ${money(o.price)} · MOQ ${num(o.moq)}${o.days ? ` · ${o.days} ${esc(t('pr_days'))}` : ''}
             · ${esc(t('o_st_' + o.status))}
           </div>
           ${o.note ? `<div class="rowsub">${esc(o.note)}</div>` : ''}
@@ -566,7 +570,7 @@ function dealTab(p) {
       <div class="kv"><span>${esc(t('pr_price'))}</span><b>${maker ? money(maker.price) : '—'}</b></div>
       <div class="kv"><span>${esc(t('f_moq'))}</span><b>${maker ? num(maker.moq) : (p.moq ? num(p.moq) : '—')}</b></div>
       <div class="kv"><span>${esc(t('d_i_t3'))}</span><b>${money(p.invested)}</b></div>
-      <div class="kv"><span>${esc(t('f_royalty'))}</span><b>${p.royalty}%</b></div>
+      <div class="kv"><span>${esc(t('f_royalty'))}</span><b>${esc(royaltyL(p))}</b></div>
     </div>
   </div>
   ${p.can.contract ? `<div style="margin-top:14px">

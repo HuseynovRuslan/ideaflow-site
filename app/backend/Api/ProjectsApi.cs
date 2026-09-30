@@ -92,7 +92,9 @@ public static class ProjectsApi
             cmd.Parameters.AddWithValue("p", (object?)Api.Dec(body, "price") ?? DBNull.Value);
             cmd.Parameters.AddWithValue("uc", (object?)Api.Dec(body, "unitCost") ?? DBNull.Value);
             cmd.Parameters.AddWithValue("m", (object?)Api.Int(body, "moq") ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("r", Math.Clamp(Api.Int(body, "royalty") ?? 8, 0, 50));
+            // Royaltini müəllif yox, platformanı idarə edən admin təyin edir.
+            // 0 = «hələ təyin edilməyib».
+            cmd.Parameters.AddWithValue("r", u.Role == "admin" ? Math.Clamp(Api.Int(body, "royalty") ?? 0, 0, 50) : 0);
             var id = (int)(await cmd.ExecuteScalarAsync())!;
 
             await using (var log = new NpgsqlCommand(
@@ -207,7 +209,9 @@ public static class ProjectsApi
             cmd.Parameters.AddWithValue("p", (object?)Api.Dec(body, "price") ?? DBNull.Value);
             cmd.Parameters.AddWithValue("uc", (object?)Api.Dec(body, "unitCost") ?? DBNull.Value);
             cmd.Parameters.AddWithValue("m", (object?)Api.Int(body, "moq") ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("r", (object?)Api.Int(body, "royalty") ?? DBNull.Value);
+            // Müəllifin göndərdiyi royalti nəzərə alınmır — yalnız admin dəyişə bilər.
+            var royalty = u.Role == "admin" ? Api.Int(body, "royalty") : null;
+            cmd.Parameters.AddWithValue("r", royalty is null ? DBNull.Value : Math.Clamp(royalty.Value, 0, 50));
             cmd.Parameters.AddWithValue("id", id);
             await cmd.ExecuteNonQueryAsync();
 

@@ -461,7 +461,7 @@ function pcard(p) {
       <div class="meta">${esc(t('p_author'))}: ${esc(p.authorName)} · ${esc(catL(p.category))}</div>
       <div class="foot">${badge(p.status)}${stars(p.rating)}</div>
       <div class="meta" style="margin:8px 0 0">
-        ${p.price ? money(p.price) : '—'} · ${t('d_a_t4')}: ${num(p.demand)}${p.interest ? ` · 🙋 ${num(p.interest)}` : ''}
+        ${p.price ? money(p.price) : '—'} · ${t('d_a_t4')}: ${num(p.demand)}${p.interest ? ` · 🙋 ${num(p.interest)}` : ''}${p.stock ? ` · 📦 ${num(p.stock)} ${esc(t('ab_stockShort'))}` : ''}
         ${p.offerCount ? ` · ${p.offerCount} ${t('d_m_t2')}` : ''}
       </div>
     </div>
@@ -506,10 +506,8 @@ async function newProjectView() {
         <div class="field"><label>${esc(t('n_price'))}</label><input id="np_price" type="number" step="0.01" min="0"></div>
         <div class="field"><label>${esc(t('ai_cost'))}</label><input id="np_cost" type="number" step="0.01" min="0"></div>
       </div>
-      <div class="grid g2">
-        <div class="field"><label>MOQ</label><input id="np_moq" type="number" min="0"></div>
-        <div class="field"><label>${esc(t('f_royalty'))} (%)</label><input id="np_royalty" type="number" min="0" max="50" value="8"></div>
-      </div>
+      <div class="field"><label>MOQ</label><input id="np_moq" type="number" min="0"></div>
+      <p class="muted" style="font-size:12.5px;margin:-4px 0 14px">ℹ️ ${esc(t('roy_adminNote'))}</p>
       <button class="btn btn-primary" type="submit">${esc(t('n_create'))}</button>
     </form>
   </div>`;
@@ -522,7 +520,7 @@ async function createProject(e) {
     const res = await API.post('/projects', {
       title: val('np_title'), descr: val('np_descr'), category: val('np_cat'),
       price: numVal('np_price'), unitCost: numVal('np_cost'),
-      moq: numVal('np_moq'), royalty: numVal('np_royalty'),
+      moq: numVal('np_moq'),
     });
     toast(t('ts_created'));
     go('#/project/' + res.id);

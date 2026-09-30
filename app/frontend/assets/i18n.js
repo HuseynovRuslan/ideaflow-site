@@ -53,6 +53,11 @@ const DICT={
   cat_sport:['İdman','Спорт','Sport'],
   cat_gadgets:['Qadcetlər','Гаджеты','Gadgets'],
   cat_eco:['Eko','Эко','Eco'],
+  cat_apparel:['Geyim','Одежда','Apparel'],
+  ab_stock:['Hazır məhsul (ədəd)','Готовая продукция (шт.)','Ready stock (units)'],
+  ab_stockShort:['hazır','готово','ready'],
+  roy_pending:['Admin təyin edəcək','Назначит админ','Set by admin'],
+  roy_adminNote:['Royaltini platforma administratoru təyin edir.','Роялти назначает администратор платформы.','Royalty is set by the platform administrator.'],
 
   /* --- lendinq --- */
   l_pill:['Məhsul yaradanlar üçün platforma','Платформа для создателей продуктов','A platform for product creators'],

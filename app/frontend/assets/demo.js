@@ -1,84 +1,41 @@
 /* ==========================================================================
    Rol baxışı (demo) — yalnız admin üçün. Admin rol seçir və saytın REAL
-   ekranları həmin rolun gözü ilə açılır, amma bütün məlumat buradakı nümunələrdən
+   ekranları həmin rolun gözü ilə açılır, amma bütün məlumat buradakı nümunədən
    gəlir: demo rejimində serverə heç bir sorğu getmir, real istifadəçinin kimliyi
    götürülmür və heç nə saxlanılmır.
+
+   Ssenari: Əmircan loqotip ideyası verib → Laçın tikiş fabriki (Latifa) 500 ədəd
+   T-shirt istehsal edib → məhsul hazırdır və satıcıların kataloqunda görünür.
+   İnvestor və satıcı hələ heç nə etməyib. Qiymət və royalti təyin edilməyib.
    ========================================================================== */
 
 const DEMO_USERS = {
-  author:   { id: 9002, email: 'demo-author@ideaflow',   fullName: 'Aysel Məmmədova (demo)', role: 'author',   status: 'active', trust: 62, lang: 'az', company: '' },
-  maker:    { id: 9003, email: 'demo-maker@ideaflow',    fullName: 'Rəşad Quliyev (demo)',   role: 'maker',    status: 'active', trust: 80, lang: 'az', company: 'Bakı Plast MMC' },
-  investor: { id: 9004, email: 'demo-investor@ideaflow', fullName: 'Elçin Həsənov (demo)',   role: 'investor', status: 'active', trust: 75, lang: 'az', company: 'Caspian Ventures' },
-  seller:   { id: 9005, email: 'demo-seller@ideaflow',   fullName: 'Nigar Əliyeva (demo)',   role: 'seller',   status: 'active', trust: 70, lang: 'az', company: 'Smart Home Store' },
+  author:   { id: 9002, email: 'emircan@demo',  fullName: 'Əmircan',        role: 'author',   status: 'active', trust: 50, lang: 'az', company: '' },
+  maker:    { id: 9003, email: 'latifa@demo',   fullName: 'Latifa',         role: 'maker',    status: 'active', trust: 50, lang: 'az', company: 'Laçın tikiş fabriki' },
+  investor: { id: 9004, email: 'investor@demo', fullName: 'Demo investor',  role: 'investor', status: 'active', trust: 50, lang: 'az', company: '' },
+  seller:   { id: 9005, email: 'seller@demo',   fullName: 'Demo satıcı',    role: 'seller',   status: 'active', trust: 50, lang: 'az', company: '' },
 };
 
 const Demo = (() => {
   const ago = (days) => new Date(Date.now() - days * 864e5).toISOString();
-  const [AUTHOR, MAKER, INVESTOR, SELLER] = [9002, 9003, 9004, 9005];
+  const [AUTHOR, MAKER] = [9002, 9003];
 
-  const aiReport = {
-    summary: 'Ağıllı su şüşəsi Azərbaycanda yeni seqmentdir: rəqiblər əsasən Türkiyə və Çindən idxal olunur, qiymət $25–60 aralığındadır. Marja sağlamdır, amma sertifikasiya və batareya logistikası əsas risklərdir.',
-    verdict: 'refine', score: 64,
-    market: { size: '$3–5 mln/il (AZ + Gürcüstan, təxmini)', trend: 'İllik 12–15% artım', notes: 'Fitnes və ofis seqmentində tələb artır.' },
-    audience: '22–40 yaş, şəhərli, idmanla məşğul olan və ofisdə işləyən insanlar.',
-    competitors: [
-      { name: 'HidrateSpark PRO', price: '$59', note: 'Premium, Bluetooth' },
-      { name: 'Xiaomi Smart Cup', price: '$22–28', note: 'Ucuz, geniş yayılıb' },
-    ],
-    pricing: '$39 qiymət və $14 maya ilə marja ~64% — yaxşıdır.',
-    risks: [
-      { title: 'Qida təhlükəsizliyi sertifikatı', detail: 'BPA-free sertifikatı tələb olunacaq.', severity: 'high' },
-      { title: 'Litium batareya daşınması', detail: 'Hava ilə idxalda məhdudiyyətlər.', severity: 'medium' },
-    ],
-    improvements: ['Tətbiqsiz sadə LED rejimi əlavə edin', 'Korporativ hədiyyə paketi hazırlayın'],
-    nextSteps: ['3 rəqibi alıb test edin', 'Açıq linklə 200 nəfər maraq toplayın'],
-    sources: [],
-  };
-
-  const maker = { makerId: MAKER, makerName: 'Rəşad Quliyev', makerCompany: 'Bakı Plast MMC', makerTrust: 80 };
-  const investor = { investorId: INVESTOR, investorName: 'Elçin Həsənov', investorCompany: 'Caspian Ventures', investorTrust: 75 };
-
-  // Nümunə layihələr — hər mərhələdən bir, ki, hər rol öz işini görsün.
   const PROJECTS = [
     {
-      id: 1, title: 'Ağıllı su şüşəsi', category: 'gadgets', status: 'demand', rating: 71, price: 39, unitCost: 14, moq: 500, royalty: 8,
-      market: '$2.1B', demand: 240, interest: 37, invested: 0, aiReport, aiAt: ago(1),
-      descr: 'Gün ərzində nə qədər su içdiyinizi izləyən və LED işıqla xatırladan ağıllı şüşə. Qapaqda sensor var, telefon tətbiqi ilə sinxronlaşır, 3 həftə batareya ömrü.',
-      offers: [{ id: 11, price: 13.5, moq: 500, days: 45, note: 'Nümunə 10 günə', status: 'pending', createdAt: ago(2), ...maker }],
-      investments: [], preorders: [{ id: 1, qty: 240, createdAt: ago(5), sellerId: SELLER, sellerName: 'Nigar Əliyeva', sellerCompany: 'Smart Home Store' }],
-      interestList: [
-        { id: 1, name: 'Kamran', contact: '+994 50 123 45 67', qty: 2, note: 'Qara rəng olsa', createdAt: ago(2) },
-        { id: 2, name: 'Leyla', contact: 'leyla@mail.az', qty: 1, note: '', createdAt: ago(1) },
-      ],
-      messages: [{ id: 1, body: 'Salam! Nümunəni nə vaxt görə bilərik?', createdAt: ago(1), userId: MAKER, userName: 'Rəşad Quliyev', role: 'maker' }],
-    },
-    {
-      id: 2, title: 'Portativ günəş şarj cihazı', category: 'electronics', status: 'findinv', rating: 78, price: 45, unitCost: 17, moq: 1000, royalty: 7,
-      market: '$4.6B', demand: 420, interest: 64, invested: 0, aiReport: null,
-      descr: 'Qatlanan günəş paneli və 20 000 mAh batareya. Səyahət və kənd yerləri üçün.',
-      offers: [{ id: 21, price: 16, moq: 1000, days: 60, note: '', status: 'accepted', createdAt: ago(9), ...maker }],
-      investments: [{ id: 31, amount: 30000, kind: 'share', note: '15% pay təklif edirəm', status: 'pending', createdAt: ago(1), ...investor }],
-      preorders: [], interestList: [], messages: [],
-    },
-    {
-      id: 3, title: 'Qatlanan idman xalçası', category: 'sport', status: 'deal', rating: 74, price: 29, unitCost: 9, moq: 1000, royalty: 8,
-      market: '$540M', demand: 600, interest: 12, invested: 25000, aiReport: null,
-      descr: 'Çantaya sığan, sürüşməyən və yuyula bilən idman xalçası.',
-      offers: [{ id: 41, price: 9, moq: 1000, days: 30, note: 'Nümunə 7 günə', status: 'accepted', createdAt: ago(20), ...maker }],
-      investments: [{ id: 51, amount: 25000, kind: 'share', note: '', status: 'accepted', createdAt: ago(15), ...investor }],
-      preorders: [{ id: 2, qty: 600, createdAt: ago(18), sellerId: SELLER, sellerName: 'Nigar Əliyeva', sellerCompany: 'Smart Home Store' }],
-      interestList: [], messages: [],
-    },
-    {
-      id: 4, title: 'Eko alış-veriş çantası', category: 'eco', status: 'draft', rating: 0, price: 12, unitCost: 4, moq: 2000, royalty: 10,
-      market: '', demand: 0, interest: 0, invested: 0, aiReport: null,
-      descr: 'Təkrar emal olunmuş plastikdən, qatlanıb açar qabına çevrilən çanta.',
-      offers: [], investments: [], preorders: [], interestList: [], messages: [],
+      id: 1, title: 'Əmircanın loqotipi — T-shirt', category: 'apparel', status: 'sales',
+      rating: 0, price: null, unitCost: null, moq: 500, royalty: 0, market: '',
+      demand: 0, interest: 0, invested: 0, stock: 500, aiReport: null,
+      descr: 'Əmircanın loqotipi ilə T-shirt ideyası. Laçın tikiş fabriki (Latifa) 500 ədəd T-shirt istehsal edib — məhsul hazırdır və satıcılar üçün açıqdır.',
+      offers: [{
+        id: 11, price: null, moq: 500, days: null, status: 'accepted', createdAt: ago(10),
+        note: '500 ədəd T-shirt istehsal olunub, hazırdır.',
+        makerId: MAKER, makerName: 'Latifa', makerCompany: 'Laçın tikiş fabriki', makerTrust: 50,
+      }],
+      investments: [], preorders: [], interestList: [], messages: [],
     },
   ].map((p) => ({
-    authorId: AUTHOR, authorName: 'Aysel Məmmədova', authorTrust: 62, createdAt: ago(30 - p.id * 3),
-    risks: p.rating ? ['risk_certification'] : [], assessedAt: p.rating ? ago(10) : null,
-    aiLang: 'az', aiAt: null, aiEnabled: true, documents: [],
+    authorId: AUTHOR, authorName: 'Əmircan', authorTrust: 50, createdAt: ago(20),
+    risks: [], assessedAt: null, aiLang: 'az', aiAt: null, aiEnabled: true, documents: [],
     offerCount: p.offers.filter((o) => o.status === 'pending').length, ...p,
   }));
 
@@ -109,7 +66,6 @@ const Demo = (() => {
       investments: own ? p.investments : p.investments.filter((i) => (u.role === 'investor' ? i.investorId === u.id : i.status === 'accepted')),
       preorders: own ? p.preorders : p.preorders.filter((r) => r.sellerId === u.id),
       interestList: own ? p.interestList : [],
-      aiReport: p.aiReport,
       can: {
         edit: own && early, assess: own && early, aiAssess: own && early,
         offer: u.role === 'maker' && ['demand', 'findmaker'].includes(p.status),
@@ -123,35 +79,23 @@ const Demo = (() => {
   }
 
   const TILES = {
-    author: { projects: 4, avgRating: 74, offers: 1, preorders: 1260 },
-    maker: { requests: 1, myOffers: 1, won: 2, inProduction: 1 },
-    investor: { seeking: 1, portfolio: 1, invested: 25000, pending: 1 },
-    seller: { pipeline: 3, myPreorders: 840, onSale: 0, reserved: 2 },
+    author: { projects: 1, avgRating: 0, offers: 0, preorders: 0 },
+    maker: { requests: 0, myOffers: 0, won: 1, inProduction: 1 },
+    investor: { seeking: 0, portfolio: 0, invested: 0, pending: 0 },
+    seller: { pipeline: 0, myPreorders: 0, onSale: 1, reserved: 0 },
   };
 
   const NOTIFS = {
-    author: [
-      { key: 'n_newOffer', projectId: 1, title: 'Ağıllı su şüşəsi', at: ago(2) },
-      { key: 'n_newInvest', projectId: 2, title: 'Portativ günəş şarj cihazı', at: ago(1) },
-    ],
-    maker: [
-      { key: 'n_offerAccepted', projectId: 3, title: 'Qatlanan idman xalçası', at: ago(20) },
-      { key: 'n_newRequest', projectId: 1, title: 'Ağıllı su şüşəsi', at: ago(3) },
-    ],
-    investor: [
-      { key: 'n_investAccepted', projectId: 3, title: 'Qatlanan idman xalçası', at: ago(15) },
-      { key: 'n_seekingFunds', projectId: 2, title: 'Portativ günəş şarj cihazı', at: ago(4) },
-    ],
-    seller: [{ key: 'n_newProduct', projectId: 2, title: 'Portativ günəş şarj cihazı', at: ago(4) }],
+    author: [],
+    maker: [{ key: 'n_offerAccepted', projectId: 1, title: 'Əmircanın loqotipi — T-shirt', at: ago(10) }],
+    investor: [],
+    seller: [{ key: 'n_newProduct', projectId: 1, title: 'Əmircanın loqotipi — T-shirt', at: ago(1) }],
   };
 
   const DIRECTORY = {
-    maker: [
-      { id: MAKER, name: 'Rəşad Quliyev', company: 'Bakı Plast MMC', trust: 80, deals: 2 },
-      { id: 9101, name: 'Səbinə Kərimova', company: 'Gəncə Tekstil', trust: 71, deals: 1 },
-    ],
-    investor: [{ id: INVESTOR, name: 'Elçin Həsənov', company: 'Caspian Ventures', trust: 75, deals: 1 }],
-    seller: [{ id: SELLER, name: 'Nigar Əliyeva', company: 'Smart Home Store', trust: 70, deals: 0 }],
+    maker: [{ id: MAKER, name: 'Latifa', company: 'Laçın tikiş fabriki', trust: 50, deals: 1 }],
+    investor: [],
+    seller: [],
   };
 
   const SETTINGS = {
@@ -163,13 +107,11 @@ const Demo = (() => {
     const m = p.offers.find((o) => o.status === 'accepted');
     return {
       project: { id: p.id, title: p.title, category: p.category, price: p.price, unitCost: p.unitCost, moq: p.moq,
-        royalty: p.royalty, descr: p.descr, number: `IF-${new Date().getFullYear()}-${String(p.id).padStart(4, '0')}`, dealAt: ago(15), status: p.status },
-      author: { name: p.authorName, company: '', email: 'aysel@example.az', phone: '+994 50 111 22 33' },
-      maker: m ? { party: { name: m.makerName, company: m.makerCompany, email: 'zavod@example.az', phone: '+994 12 444 55 66' },
+        royalty: p.royalty, descr: p.descr, number: `IF-${new Date().getFullYear()}-${String(p.id).padStart(4, '0')}`, dealAt: ago(10), status: p.status },
+      author: { name: p.authorName, company: '', email: DEMO_USERS.author.email, phone: '' },
+      maker: m ? { party: { name: m.makerName, company: m.makerCompany, email: DEMO_USERS.maker.email, phone: '' },
         price: m.price, moq: m.moq, days: m.days, note: m.note } : null,
-      investors: p.investments.filter((i) => i.status === 'accepted').map((i) => ({
-        party: { name: i.investorName, company: i.investorCompany, email: 'invest@example.az', phone: '' },
-        amount: i.amount, kind: i.kind, note: i.note })),
+      investors: [],
       fees: { production: '5', investment: '3', sales: '3', escrow: '1' },
       generatedAt: new Date().toISOString(),
     };

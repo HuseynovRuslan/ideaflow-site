@@ -35,11 +35,14 @@ const ROLE_META = {
   seller:   { color: 'var(--seller)',   emoji: '🛒' },
   admin:    { color: 'var(--admin)',    emoji: '🛡' },
 };
-const CATS = ['electronics', 'home', 'sport', 'gadgets', 'eco'];
+const CATS = ['electronics', 'home', 'sport', 'gadgets', 'eco', 'apparel'];
 const COVERS = {
   electronics: ['#EAF1F6', '🔌'], home: ['#F1EEE9', '🏠'], sport: ['#EAF6F2', '🏅'],
-  gadgets: ['#F0ECF6', '📱'], eco: ['#EDF6EC', '🌱'],
+  gadgets: ['#F0ECF6', '📱'], eco: ['#EDF6EC', '🌱'], apparel: ['#F6EEF1', '👕'],
 };
+
+/* Royalti admin tərəfindən təyin olunur; 0 — hələ təyin edilməyib. */
+function royaltyL(p) { return p.royalty > 0 ? p.royalty + '%' : t('roy_pending'); }
 const DOCTYPES = { nda: '#42607A', patent: '#7A5AA6', contract: '#1F5E8C', cert: '#0E7C66', other: '#7A8794' };
 const USER_STATUS_COLOR = { pending: '#C9A227', active: '#0E7C66', blocked: '#C0392B', rejected: '#7A8794' };
 

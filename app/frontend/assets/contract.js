@@ -74,7 +74,7 @@ function contractHtml(d) {
       <table class="cttbl">
         ${kv(t('ct_unitPrice'), money(m.price))}
         ${kv(t('ct_moq'), num(m.moq))}
-        ${kv(t('ct_lead'), m.days + ' ' + esc(t('ct_days')))}
+        ${kv(t('ct_lead'), m.days ? m.days + ' ' + esc(t('ct_days')) : '—')}
       </table>
       ${m.note ? `<p class="ctmuted">${esc(m.note)}</p>` : ''}
       <p>${esc(t('ct_s2t'))}</p>` : `<p class="ctmuted">${esc(t('ct_noMaker'))}</p>`}
@@ -90,7 +90,7 @@ function contractHtml(d) {
     <h2>${esc(t('ct_s4'))}</h2>
     <table class="cttbl">
       ${kv(t('ct_retail'), money(p.price))}
-      ${kv(t('ct_royalty'), p.royalty + '%')}
+      ${kv(t('ct_royalty'), esc(royaltyL(p)))}
     </table>
     <p>${esc(t('ct_s4t'))}</p>
 
