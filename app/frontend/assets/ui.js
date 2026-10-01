@@ -25,8 +25,8 @@ function toastErr(err) {
 }
 
 const STATUS_COLOR = {
-  draft: '#8A8A8A', assess: '#C9A227', demand: '#0E7C66', findmaker: '#C07A2C',
-  findinv: '#2E86C1', deal: '#1F5E8C', prod: '#7A5AA6', sales: '#0E7C66', rejected: '#C0392B',
+  draft: '#78716C', assess: '#B45309', demand: '#0F766E', findmaker: '#C2410C',
+  findinv: '#1D4ED8', deal: '#6D28D9', prod: '#7E22CE', sales: '#15803D', rejected: '#B91C1C',
 };
 const ROLE_META = {
   author:   { color: 'var(--author)',   emoji: '💡' },
@@ -37,14 +37,14 @@ const ROLE_META = {
 };
 const CATS = ['electronics', 'home', 'sport', 'gadgets', 'eco', 'apparel'];
 const COVERS = {
-  electronics: ['#EAF1F6', '🔌'], home: ['#F1EEE9', '🏠'], sport: ['#EAF6F2', '🏅'],
-  gadgets: ['#F0ECF6', '📱'], eco: ['#EDF6EC', '🌱'], apparel: ['#F6EEF1', '👕'],
+  electronics: ['#E0F2FE', '🔌'], home: ['#FEF3C7', '🏠'], sport: ['#DCFCE7', '🏅'],
+  gadgets: ['#EDE9FE', '📱'], eco: ['#ECFCCB', '🌱'], apparel: ['#FFE4E6', '👕'],
 };
 
 /* Royalti admin tərəfindən təyin olunur; 0 — hələ təyin edilməyib. */
 function royaltyL(p) { return p.royalty > 0 ? p.royalty + '%' : t('roy_pending'); }
 const DOCTYPES = { nda: '#42607A', patent: '#7A5AA6', contract: '#1F5E8C', cert: '#0E7C66', other: '#7A8794' };
-const USER_STATUS_COLOR = { pending: '#C9A227', active: '#0E7C66', blocked: '#C0392B', rejected: '#7A8794' };
+const USER_STATUS_COLOR = { pending: '#B45309', active: '#15803D', blocked: '#B91C1C', rejected: '#78716C' };
 
 function badge(st) {
   const c = STATUS_COLOR[st] || '#888';
