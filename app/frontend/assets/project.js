@@ -42,18 +42,21 @@ function projectHtml() {
   const [bg, em] = COVERS[p.category] || ['#EEE', '📦'];
   const tabs = projectTabs(p);
   return `
-  <a class="muted" href="#/projects" style="font-size:13.5px">${esc(t('p_back'))}</a>
-  <div class="phead" style="margin-top:12px">
-    <div class="ic" style="background:${bg}">${em}</div>
-    <div style="flex:1">
-      <h1 style="font-size:24px;font-weight:840;letter-spacing:-.02em">${esc(p.title)}</h1>
-      <p class="muted" style="font-size:14px;margin-top:3px">
-        ${esc(t('p_author'))}: ${esc(p.authorName)} · ${esc(catL(p.category))} · ${fdate(p.createdAt)}
-      </p>
-      <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        ${badge(p.status)}${stars(p.rating)}
-      </div>
+  <a class="back" href="#/projects">← ${esc(t('p_back').replace(/^←\s*/, ''))}</a>
+  <section class="phero" style="--cov:${bg}">
+    <div class="phic">${em}</div>
+    <div class="phtext">
+      <div class="phchips">${badge(p.status)}<span class="chip">${esc(catL(p.category))}</span></div>
+      <h1>${esc(p.title)}</h1>
+      <p>${esc(t('p_author'))}: <b>${esc(p.authorName)}</b> · ${fdate(p.createdAt)}</p>
     </div>
+    <div class="phring">${ring(stageProgress(p.status), 72, p.status === 'sales' ? 'var(--accent-2)' : 'var(--accent)')}</div>
+  </section>
+  <div class="pstats">
+    <div><small>${esc(t('f_price'))}</small><b>${money(p.price)}</b></div>
+    <div><small>${esc(t('ab_rating'))}</small><b>${p.rating ? p.rating + '/100' : '—'}</b></div>
+    <div><small>${esc(t('ab_preorders'))}</small><b>${num(p.demand)}</b></div>
+    <div><small>${esc(p.stock ? t('ab_stock') : t('ab_interest'))}</small><b>${num(p.stock || p.interest)}</b></div>
   </div>
   ${timeline(p.status)}
   ${statusActions(p)}

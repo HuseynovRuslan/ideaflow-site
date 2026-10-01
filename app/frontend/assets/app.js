@@ -95,19 +95,37 @@ function setContent(html) {
   if (el) el.innerHTML = html;
 }
 
-function navItems() {
+/* Rol üzrə menyu elementləri: [href, i18n açarı, ikon]. */
+function navList() {
   const r = S.me.role;
-  const items = [['#/app', 'nav_overview', '▦'], ['#/projects', 'nav_projects', '▤']];
-  if (r === 'author') items.push(['#/new', 'nav_new', '＋']);
-  if (r === 'investor' || r === 'admin') items.push(['#/investors', 'nav_investors', '◆']);
-  if (r === 'maker' || r === 'admin' || r === 'author') items.push(['#/makers', 'nav_makers', '◆']);
-  items.push(['#/analytics', 'nav_analytics', '📊']);
-  items.push(['#/pricing', 'nav_pricing', '₮']);
-  if (r === 'admin') items.push(['#/admin', 'nav_admin', '🛡']);
+  const items = [['#/app', 'nav_overview', 'home'], ['#/projects', 'nav_projects', 'grid']];
+  if (r === 'author') items.push(['#/new', 'nav_new', 'plus']);
+  if (r === 'investor' || r === 'admin') items.push(['#/investors', 'nav_investors', 'trending']);
+  if (r === 'maker' || r === 'admin' || r === 'author') items.push(['#/makers', 'nav_makers', 'factory']);
+  items.push(['#/analytics', 'nav_analytics', 'chart']);
+  items.push(['#/pricing', 'nav_pricing', 'tag']);
+  if (r === 'admin') items.push(['#/admin', 'nav_admin', 'shield']);
+  return items;
+}
+
+function isOn(href) {
   const h = location.hash || '#/app';
-  return items.map(([href, k, i]) =>
-    `<a href="${href}" class="${h === href || h.startsWith(href + '/') ? 'on' : ''}">
-       <span class="i">${i}</span>${esc(t(k))}</a>`).join('');
+  return h === href || h.startsWith(href + '/') || (href === '#/app' && (h === '#/' || h === ''));
+}
+
+function navItems() {
+  return navList().map(([href, k, i]) =>
+    `<a href="${href}" class="${isOn(href) ? 'on' : ''}"><span class="i">${icon(i)}</span>${esc(t(k))}</a>`).join('');
+}
+
+/* Mobil alt panel: ən çox lazım olan 4 bölmə + «Menyu». */
+function tabbar() {
+  const items = navList().filter(([href]) => ['#/app', '#/projects', '#/new', '#/admin', '#/makers', '#/investors'].includes(href)).slice(0, 4);
+  return `<nav class="tabbar" aria-label="${esc(t('nav_menu'))}">
+    ${items.map(([href, k, i]) => `<a href="${href}" class="${isOn(href) ? 'on' : ''} ${href === '#/new' ? 'fab' : ''}">
+      ${icon(i, 22)}<span>${esc(t(k))}</span></a>`).join('')}
+    <button onclick="toggleMenu()">${icon('menu', 22)}<span>${esc(t('nav_menu'))}</span></button>
+  </nav>`;
 }
 
 function shell(inner) {
@@ -115,32 +133,41 @@ function shell(inner) {
   const nCount = S.notifs.length;
   document.body.classList.remove('menu-open'); // hər keçiddə mobil menyu bağlanır
   $('#app').innerHTML = `${demoBanner()}
-  <div class="topbar">
-    <button class="ticon burger" onclick="toggleMenu()" aria-label="${esc(t('nav_menu'))}">☰</button>
-    <a class="logo" href="#/app"><span class="m">${logoSvg()}</span>IdeaFlow</a>
-    <div class="spacer"></div>
-    <div class="roleSel">
-      <span class="badge" style="background:${meta.color}1f;color:${meta.color}">
-        ${meta.emoji} ${esc(rl(S.me.role))}
-      </span>
-    </div>
-    <button class="ticon" onclick="cycleLang()" title="${t('top_lang')}"
-            style="font-size:12px;font-weight:800">${S.lang.toUpperCase()}</button>
-    <button class="ticon" onclick="toggleTheme()" title="${t('top_theme')}">${S.theme === 'dark' ? '☀️' : '🌙'}</button>
-    <button class="bell" onclick="toggleNotifs()">🔔${nCount ? `<span class="cnt">${nCount > 99 ? '99+' : nCount}</span>` : ''}</button>
-    ${S.showN ? notifDropdown() : ''}
-  </div>
-  <div class="layout">
-    <div class="side" onclick="if(event.target.closest('a'))toggleMenu(false)">
+  <div class="app">
+    <aside class="nav" onclick="if(event.target.closest('a'))toggleMenu(false)">
+      <a class="brand" href="#/app"><span class="m">${logoSvg()}</span>IdeaFlow</a>
+      <a class="me" href="#/profile">
+        <span class="av" style="--c:${meta.color}">${esc(initials(S.me.fullName))}</span>
+        <span class="mi"><b>${esc(S.me.fullName)}</b><small>${meta.emoji} ${esc(rl(S.me.role))}</small></span>
+      </a>
       <div class="grp">${esc(t('nav_menu'))}</div>
-      ${navItems()}
-      <div class="grp">${esc(t('pf_title'))}</div>
-      <a href="#/profile" class="${(location.hash || '') === '#/profile' ? 'on' : ''}">
-        <span class="i">👤</span>${esc(S.me.fullName)}</a>
-      <a onclick="doLogout()"><span class="i">⎋</span>${esc(t('a_logout'))}</a>
+      <nav class="navlist">${navItems()}</nav>
+      ${S.me.role === 'author' ? `
+        <a class="navcta" href="#/new">
+          <span class="ci">${icon('sparkles', 22)}</span>
+          <b>${esc(t('cta_newTitle'))}</b><small>${esc(t('cta_newSub'))}</small>
+        </a>` : ''}
+      <div class="navfoot">
+        <a href="#/profile" class="${isOn('#/profile') ? 'on' : ''}"><span class="i">${icon('user')}</span>${esc(t('pf_title'))}</a>
+        <a onclick="doLogout()"><span class="i">${icon('logout')}</span>${esc(t('a_logout'))}</a>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="bar">
+        <button class="ticon burger" onclick="toggleMenu()" aria-label="${esc(t('nav_menu'))}">${icon('menu')}</button>
+        <a class="brand mbrand" href="#/app"><span class="m">${logoSvg()}</span>IdeaFlow</a>
+        <div class="spacer"></div>
+        <button class="ticon" onclick="cycleLang()" title="${esc(t('top_lang'))}" aria-label="${esc(t('top_lang'))}">
+          <span class="lng">${S.lang.toUpperCase()}</span></button>
+        <button class="ticon" onclick="toggleTheme()" title="${esc(t('top_theme'))}" aria-label="${esc(t('top_theme'))}">
+          ${icon(S.theme === 'dark' ? 'sun' : 'moon')}</button>
+        <button class="bell ticon" onclick="toggleNotifs()" aria-label="${esc(t('top_notifs'))}">${icon('bell')}${nCount ? `<span class="cnt">${nCount > 99 ? '99+' : nCount}</span>` : ''}</button>
+        ${S.showN ? notifDropdown() : ''}
+      </header>
+      <main class="content" id="content">${inner}</main>
     </div>
-    <div class="content" id="content">${inner}</div>
   </div>
+  ${tabbar()}
   <div class="mscrim" onclick="toggleMenu(false)"></div>`;
 }
 
@@ -190,7 +217,7 @@ async function refreshNotifs() {
     if (changed) {
       const bell = document.querySelector('.bell');
       if (bell) {
-        bell.innerHTML = `🔔${list.length ? `<span class="cnt">${list.length > 99 ? '99+' : list.length}</span>` : ''}`;
+        bell.innerHTML = `${icon('bell')}${list.length ? `<span class="cnt">${list.length > 99 ? '99+' : list.length}</span>` : ''}`;
       }
     }
   } catch (_) { /* bildirişlər kritik deyil — səssiz buraxılır */ }
@@ -214,46 +241,112 @@ function toggleNotifs() { S.showN = !S.showN; render(); }
 /* ================================ LANDING ================================ */
 function landingView() {
   const roles = ['author', 'maker', 'investor', 'seller'];
+  const roleIcon = { author: 'bulb', maker: 'factory', investor: 'trending', seller: 'store' };
+  const steps = [['bulb', 'ls_1'], ['sparkles', 'ls_2'], ['factory', 'ls_3'], ['store', 'ls_4']];
+  const ex = Demo.example();
   return `
-  <div class="authtop">
-    <button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#EAF1F6"
-            onclick="cycleLang()">${S.lang.toUpperCase()}</button>
-    <a class="btn btn-ghost btn-sm" href="#/login"
-       style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#EAF1F6">${t('a_login')}</a>
-  </div>
-  <div class="hero">
-    <span class="pill">${esc(t('l_pill'))}</span>
-    <h1>${esc(t('l_h1a'))} <span class="g">${esc(t('l_h1b'))}</span></h1>
-    <p>${esc(t('l_sub'))}</p>
-    <a class="btn btn-primary" href="#/register">${esc(t('a_register'))}</a>
-  </div>
-  <div class="enter">
-    <div class="enterCard">
-      <h3 style="font-size:19px">${esc(t('l_enterTitle'))}</h3>
-      <p class="muted" style="font-size:13.5px;margin-top:4px">${esc(t('a_regSub'))}</p>
-      <div class="roles">
+  <div class="land">
+    <header class="lnav">
+      <a class="brand" href="#/"><span class="m">${logoSvg()}</span>IdeaFlow</a>
+      <nav class="llinks">
+        <a onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">${esc(t('ln_how'))}</a>
+        <a onclick="document.getElementById('roles').scrollIntoView({behavior:'smooth'})">${esc(t('ln_roles'))}</a>
+      </nav>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" onclick="cycleLang()" aria-label="${esc(t('top_lang'))}">${S.lang.toUpperCase()}</button>
+      <a class="btn btn-ghost btn-sm" href="#/login">${esc(t('a_login'))}</a>
+      <a class="btn btn-primary btn-sm lhide" href="#/register">${esc(t('a_register'))}</a>
+    </header>
+
+    <section class="lhero">
+      <div class="lcopy">
+        <span class="pill">${icon('sparkles', 16)} ${esc(t('l_pill'))}</span>
+        <h1>${esc(t('l_h1a'))} <span class="g">${esc(t('l_h1b'))}</span></h1>
+        <p>${esc(t('l_sub'))}</p>
+        <div class="lcta">
+          <a class="btn btn-primary btn-lg" href="#/register">${esc(t('a_register'))} ${icon('arrow', 18)}</a>
+          <a class="btn btn-ghost btn-lg" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">${esc(t('ln_how'))}</a>
+        </div>
+        <div class="ltrust">
+          ${['lt_1', 'lt_2', 'lt_3'].map((k) => `<span>${icon('check', 16)} ${esc(t(k))}</span>`).join('')}
+        </div>
+      </div>
+      <div class="lvisual" aria-hidden="true">
+        <div class="fcard f1"><span class="fi" style="--c:var(--author)">${icon('bulb')}</span>
+          <div><small>${esc(t('j_idea'))}</small><b>${esc(ex.authorName)}</b></div></div>
+        <div class="fcard f2"><span class="fi" style="--c:var(--maker)">${icon('factory')}</span>
+          <div><small>${esc(t('j_maker'))}</small><b>${esc(ex.makerCompany)}</b></div></div>
+        <div class="fcard f3"><span class="fi" style="--c:var(--investor)">${icon('box')}</span>
+          <div><small>${esc(t('j_ready'))}</small><b>${num(ex.stock)} ${esc(t('j_units'))}</b></div></div>
+        <div class="fproduct"><span>👕</span><b>${esc(ex.title)}</b></div>
+      </div>
+    </section>
+
+    <section class="lsec" id="how">
+      <div class="lhead"><span class="kick">${esc(t('ln_how'))}</span><h2>${esc(t('ls_title'))}</h2></div>
+      <div class="lsteps">
+        ${steps.map(([ic, k], i) => `
+          <div class="lstep">
+            <span class="num">${i + 1}</span>
+            <span class="si">${icon(ic, 24)}</span>
+            <h3>${esc(t(k))}</h3>
+            <p>${esc(t(k + 'd'))}</p>
+          </div>`).join('')}
+      </div>
+    </section>
+
+    <section class="lsec" id="roles">
+      <div class="lhead"><span class="kick">${esc(t('ln_roles'))}</span><h2>${esc(t('l_enterTitle'))}</h2>
+        <p>${esc(t('a_regSub'))}</p></div>
+      <div class="lroles">
         ${roles.map((r) => `
-          <a class="rbtn" style="--c:${ROLE_META[r].color}" href="#/register/${r}">
-            <div class="ic">${ROLE_META[r].emoji}</div>
-            <h4>${esc(rl(r))}</h4>
-            <p>${esc(t('rd_' + r))}</p>
+          <a class="lrole" style="--c:${ROLE_META[r].color}" href="#/register/${r}">
+            <span class="ri">${icon(roleIcon[r], 26)}</span>
+            <h3>${esc(rl(r))}</h3>
+            <p>${esc(t('vw_' + r))}</p>
+            <span class="go">${esc(t('a_register'))} ${icon('arrow', 16)}</span>
           </a>`).join('')}
       </div>
-      <div class="authswap">${esc(t('a_hasAcc'))} <a href="#/login">${esc(t('a_login'))}</a></div>
-    </div>
+    </section>
+
+    <section class="lsec">
+      <div class="lstory">
+        <div class="lhead" style="text-align:left;margin:0"><span class="kick">${esc(t('j_example'))}</span>
+          <h2>${esc(ex.title)}</h2><p>${esc(ex.descr)}</p></div>
+        ${journey(ex, true)}
+      </div>
+    </section>
+
+    <section class="lfinal">
+      <h2>${esc(t('lf_title'))}</h2>
+      <p>${esc(t('lf_sub'))}</p>
+      <a class="btn btn-lg lfbtn" href="#/register">${esc(t('a_register'))} ${icon('arrow', 18)}</a>
+    </section>
+    <footer class="lfoot"><span>© ${new Date().getFullYear()} IdeaFlow</span>
+      <span>${esc(t('a_hasAcc'))} <a href="#/login">${esc(t('a_login'))}</a></span></footer>
   </div>`;
 }
 
 /* =========================== GİRİŞ / QEYDİYYAT =========================== */
+/* İki hissəli ekran: solda brend paneli (dəyər təklifi), sağda forma. */
 function authChrome(inner) {
-  return `<div class="authwrap">
-    <div class="authtop">
-      <button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#EAF1F6"
-              onclick="cycleLang()">${S.lang.toUpperCase()}</button>
-    </div>
-    <div class="authcard">
-      <div class="brand"><span class="m">${logoSvg()}</span>IdeaFlow</div>
-      ${inner}
+  return `<div class="authsplit">
+    <aside class="authbrand">
+      <a class="brand" href="#/"><span class="m">${logoSvg()}</span>IdeaFlow</a>
+      <div class="abcopy">
+        <h2>${esc(t('l_h1a'))} <span class="g">${esc(t('l_h1b'))}</span></h2>
+        <ul>${['lt_1', 'lt_2', 'lt_3'].map((k) => `<li>${icon('check', 18)} ${esc(t(k))}</li>`).join('')}</ul>
+      </div>
+      <div class="abflow" aria-hidden="true">
+        <span>${icon('bulb', 18)}</span><i></i><span>${icon('factory', 18)}</span><i></i><span>${icon('box', 18)}</span><i></i><span>${icon('store', 18)}</span>
+      </div>
+    </aside>
+    <div class="authside">
+      <div class="authtop">
+        <a class="btn btn-ghost btn-sm" href="#/">← IdeaFlow</a>
+        <button class="btn btn-ghost btn-sm" onclick="cycleLang()" aria-label="${esc(t('top_lang'))}">${S.lang.toUpperCase()}</button>
+      </div>
+      <div class="authcard">${inner}</div>
     </div>
   </div>`;
 }
@@ -398,9 +491,10 @@ async function recheck() {
 
 /* =============================== KABİNET =============================== */
 async function dashboardView() {
-  const [dash, projects] = await Promise.all([
+  const [dash, projects, notifs] = await Promise.all([
     API.get('/dashboard'),
     API.get('/projects' + (S.me.role === 'author' ? '?mine=1' : '')),
+    API.get('/notifications').catch(() => []),
   ]);
   const tiles = dash.tiles;
   const r = S.me.role;
@@ -435,55 +529,95 @@ async function dashboardView() {
   const [tk, sk] = titles[r] || titles.author;
   const listTitle = { author: 'd_a_my', maker: 'd_m_reqs', investor: 'd_i_feed', seller: 'd_s_catalog' }[r] || 'c_title';
 
+  const statIcons = {
+    author: ['grid', 'star', 'factory', 'store'], maker: ['box', 'tag', 'check', 'shield'],
+    investor: ['trending', 'grid', 'coins', 'sparkles'], seller: ['box', 'store', 'check', 'tag'],
+    admin: ['users', 'grid', 'check', 'coins'],
+  };
+  const meta = ROLE_META[r] || ROLE_META.author;
+  const first = String(S.me.fullName || '').split(/\s+/)[0];
+  const today = new Date().toLocaleDateString(S.lang === 'en' ? 'en-GB' : S.lang === 'ru' ? 'ru-RU' : 'az-AZ', { weekday: 'long' });
+  const quick = navList().filter(([href]) => href !== '#/app').slice(0, 4);
+  const list = [...(S.demo ? [] : [journey(Demo.example(), true)]), ...projects.slice(0, 8).map((p) => journey(p))];
+
   return `
-  <div class="page-h">
-    <div><h1>${esc(t(tk))}</h1><p>${esc(t(sk))}</p></div>
-    ${r === 'author' ? `<a class="btn btn-primary" href="#/new">${esc(t('btn_newIdea'))}</a>` : ''}
+  <section class="welcome" style="--c:${meta.color}">
+    <div class="wtext">
+      <span class="wkick">${esc(today)} · ${esc(t(tk))}</span>
+      <h1>${esc(tf('d_hello', { name: first }))} 👋</h1>
+      <p>${esc(t(sk))}</p>
+      <div class="wcta">
+        ${r === 'author' ? `<a class="btn btn-primary" href="#/new">${icon('plus', 18)} ${esc(t('nav_new'))}</a>` : ''}
+        <a class="btn btn-ghost" href="#/projects">${icon('grid', 18)} ${esc(t('c_title'))}</a>
+      </div>
+    </div>
+    <div class="wart" aria-hidden="true"><span>${meta.emoji}</span></div>
+  </section>
+
+  <div class="stats">
+    ${(tileSets[r] || []).map(([v, k], i) => `
+      <div class="stat">
+        <span class="sic">${icon((statIcons[r] || statIcons.author)[i], 20)}</span>
+        <div><b>${esc(String(v))}</b><span>${esc(t(k))}</span></div>
+      </div>`).join('')}
   </div>
-  <div class="tiles">
-    ${(tileSets[r] || []).map(([v, k]) =>
-      `<div class="tile"><div class="v">${esc(String(v))}</div><div class="k">${esc(t(k))}</div></div>`).join('')}
-  </div>
-  <h3 style="margin:8px 0 12px;font-size:17px">${esc(t(listTitle))}</h3>
-  <div class="journeys">
-    ${S.demo ? '' : journey(Demo.example(), true)}
-    ${projects.slice(0, 9).map((p) => journey(p)).join('')}
-  </div>
-  ${!projects.length && S.demo ? `<div class="empty">${esc(t('c_empty'))}</div>` : ''}
-  ${projects.length > 9 ? `<div style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="#/projects">${esc(t('c_title'))} →</a></div>` : ''}`;
+
+  <div class="dash">
+    <div class="dmain">
+      <div class="sechead"><h2>${esc(t(listTitle))}</h2>
+        <a href="#/projects">${esc(t('d_all'))} ${icon('arrow', 16)}</a></div>
+      ${list.length ? `<div class="journeys">${list.join('')}</div>` : `<div class="empty">${esc(t('c_empty'))}</div>`}
+    </div>
+    <aside class="dside">
+      <div class="card">
+        <h3>${icon('bell', 18)} ${esc(t('d_activity'))}</h3>
+        ${notifs.length ? `<ul class="feed">${notifs.slice(0, 6).map((n) => `
+          <li ${n.projectId ? `onclick="go('#/project/${n.projectId}')"` : ''}>
+            <span class="dot"></span>
+            <div><b>${esc(t(n.key))}</b><small>${esc(n.title)} · ${fdate(n.at)}</small></div>
+          </li>`).join('')}</ul>` : `<p class="muted" style="font-size:13.5px">${esc(t('n_empty'))}</p>`}
+      </div>
+      <div class="card">
+        <h3>${icon('sparkles', 18)} ${esc(t('d_quick'))}</h3>
+        <div class="quick">${quick.map(([href, k, i]) => `
+          <a href="${href}"><span>${icon(i, 18)}</span>${esc(t(k))}</a>`).join('')}</div>
+      </div>
+    </aside>
+  </div>`;
 }
 
-/* İcmal üçün sadə «məhsul yolu» — bir sətirdə zəncir:
-   💡 kim verib → 🏭 kim istehsal edib → 📦 neçə ədəd satışa hazırdır (→ satıcı → investor).
-   Boş addımlar göstərilmir; yalnız növbəti gözlənilən addım solğun yazılır.
-   example=true — real layihə deyil, icmalın yuxarısındakı nümunə. */
+/* «Məhsul yolu» kartı: ideya → istehsalçı → satışa hazır → satıcı (→ investor).
+   Sağda mərhələ üzrə irəliləyiş halqası. example=true — nümunə, real layihə deyil. */
 function journey(p, example = false) {
-  const [, em] = COVERS[p.category] || ['#EEE', '📦'];
-  // Satışa hazır: demoda/nümunədə birbaşa verilir, real layihədə «Satış» mərhələsində
+  const [bg, em] = COVERS[p.category] || ['#EEE', '📦'];
+  // Satışa hazır: nümunədə birbaşa verilir, real layihədə «Satış» mərhələsində
   // qəbul edilmiş istehsal təklifinin həcmi.
   const ready = p.stock || (p.status === 'sales' ? p.makerQty : 0) || 0;
-  const maker = [p.makerCompany, p.makerName].filter(Boolean).join(' · ');
-  const chip = (text, done = true) => `<span class="jchip ${done ? '' : 'wait'}">${text}</span>`;
-
-  const chain = [chip(`💡 ${esc(p.authorName)}`)];
-  if (maker) {
-    chain.push(chip(`🏭 ${esc(maker)}`));
-    chain.push(ready ? chip(`📦 ${num(ready)} ${esc(t('j_readyN'))}`) : chip(`📦 ${esc(t('j_making'))}`, false));
-  } else {
-    chain.push(chip(`🏭 ${esc(t('j_findMaker'))}`, false));
-  }
-  if (p.demand) chain.push(chip(`🛒 ${num(p.demand)} ${esc(t('j_reservedN'))}`));
-  if (Number(p.invested)) chain.push(chip(`📈 ${money(p.invested)}`));
+  const maker = p.makerCompany || p.makerName;
+  const node = (ic, label, value, done) => `
+    <div class="jn ${done ? 'done' : ''}">
+      <span class="jni">${icon(ic, 16)}</span>
+      <div><small>${esc(label)}</small><b>${value}</b></div>
+    </div>`;
+  const none = esc(t('j_none'));
+  const nodes = [
+    node('bulb', t('j_idea'), esc(p.authorName), true),
+    node('factory', t('j_maker'), maker ? esc(maker) : esc(t('j_findMaker')), !!maker),
+    node('box', t('j_ready'), ready ? `${num(ready)} ${esc(t('j_units'))}` : none, !!ready),
+    node('store', t('j_seller'), p.demand ? `${num(p.demand)} ${esc(t('j_units'))}` : none, !!p.demand),
+  ];
+  if (Number(p.invested)) nodes.push(node('trending', t('j_investor'), money(p.invested), true));
 
   return `
-  <div class="journey ${example ? 'example' : ''}" ${example ? '' : `onclick="go('#/project/${p.id}')"`}>
-    <div class="jtop">
-      <span class="jem">${em}</span>
-      <b>${esc(p.title)}</b>
-      ${example ? `<span class="jex">${esc(t('j_example'))}</span>` : ''}
+  <article class="jcard ${example ? 'example' : ''}" ${example ? '' : `onclick="go('#/project/${p.id}')" tabindex="0" onkeydown="if(event.key==='Enter')go('#/project/${p.id}')"`}>
+    <div class="jcov" style="background:${bg}">${em}</div>
+    <div class="jbody">
+      <div class="jtitle"><h3>${esc(p.title)}</h3>
+        ${example ? `<span class="jex">${esc(t('j_example'))}</span>` : badge(p.status)}</div>
+      <div class="jnodes">${nodes.join('')}</div>
     </div>
-    <div class="jflow">${chain.join('<span class="jarr">→</span>')}</div>
-  </div>`;
+    <div class="jprog">${ring(stageProgress(p.status), 58, example || p.status === 'sales' ? 'var(--accent-2)' : 'var(--accent)')}</div>
+  </article>`;
 }
 
 function pcard(p) {
@@ -499,6 +633,7 @@ function pcard(p) {
         ${p.price ? money(p.price) : '—'} · ${t('d_a_t4')}: ${num(p.demand)}${p.interest ? ` · 🙋 ${num(p.interest)}` : ''}${p.stock ? ` · 📦 ${num(p.stock)} ${esc(t('ab_stockShort'))}` : ''}
         ${p.offerCount ? ` · ${p.offerCount} ${t('d_m_t2')}` : ''}
       </div>
+      <div class="pprog" title="${stageProgress(p.status)}%"><i style="width:${stageProgress(p.status)}%"></i></div>
     </div>
   </div>`;
 }
