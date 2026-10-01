@@ -4,13 +4,13 @@
    gəlir: demo rejimində serverə heç bir sorğu getmir, real istifadəçinin kimliyi
    götürülmür və heç nə saxlanılmır.
 
-   Ssenari: Əmircan loqotip ideyası verib → Laçın tikiş fabriki (Latifa) 500 ədəd
+   Ssenari: Pryzma Əmircanın loqotipi ideyasını verib → Laçın tikiş fabriki (Latifa) 500 ədəd
    T-shirt istehsal edib → məhsul hazırdır və satıcıların kataloqunda görünür.
    İnvestor və satıcı hələ heç nə etməyib. Qiymət və royalti təyin edilməyib.
    ========================================================================== */
 
 const DEMO_USERS = {
-  author:   { id: 9002, email: 'emircan@demo',  fullName: 'Əmircan',        role: 'author',   status: 'active', trust: 50, lang: 'az', company: '' },
+  author:   { id: 9002, email: 'pryzma@demo',   fullName: 'Pryzma',         role: 'author',   status: 'active', trust: 50, lang: 'az', company: '' },
   maker:    { id: 9003, email: 'latifa@demo',   fullName: 'Latifa',         role: 'maker',    status: 'active', trust: 50, lang: 'az', company: 'Laçın tikiş fabriki' },
   investor: { id: 9004, email: 'investor@demo', fullName: 'Demo investor',  role: 'investor', status: 'active', trust: 50, lang: 'az', company: '' },
   seller:   { id: 9005, email: 'seller@demo',   fullName: 'Demo satıcı',    role: 'seller',   status: 'active', trust: 50, lang: 'az', company: '' },
@@ -25,7 +25,8 @@ const Demo = (() => {
       id: 1, title: 'Əmircanın loqotipi — T-shirt', category: 'apparel', status: 'sales',
       rating: 0, price: null, unitCost: null, moq: 500, royalty: 0, market: '',
       demand: 0, interest: 0, invested: 0, stock: 500, aiReport: null,
-      descr: 'Əmircanın loqotipi ilə T-shirt ideyası. Laçın tikiş fabriki (Latifa) 500 ədəd T-shirt istehsal edib — məhsul hazırdır və satıcılar üçün açıqdır.',
+      makerCompany: 'Laçın tikiş fabriki', makerName: 'Latifa', makerQty: 500,
+      descr: 'Pryzma tərəfindən verilmiş ideya: Əmircanın loqotipi ilə T-shirt. Laçın tikiş fabriki (Latifa) 500 ədəd T-shirt istehsal edib — məhsul hazırdır və satıcılar üçün açıqdır.',
       offers: [{
         id: 11, price: null, moq: 500, days: null, status: 'accepted', createdAt: ago(10),
         note: '500 ədəd T-shirt istehsal olunub, hazırdır.',
@@ -34,7 +35,7 @@ const Demo = (() => {
       investments: [], preorders: [], interestList: [], messages: [],
     },
   ].map((p) => ({
-    authorId: AUTHOR, authorName: 'Əmircan', authorTrust: 50, createdAt: ago(20),
+    authorId: AUTHOR, authorName: 'Pryzma', authorTrust: 50, createdAt: ago(20),
     risks: [], assessedAt: null, aiLang: 'az', aiAt: null, aiEnabled: true, documents: [],
     offerCount: p.offers.filter((o) => o.status === 'pending').length, ...p,
   }));

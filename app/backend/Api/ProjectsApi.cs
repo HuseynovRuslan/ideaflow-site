@@ -17,14 +17,16 @@ public static class ProjectsApi
          or exists (select 1 from preorders   r where r.project_id = p.id and r.seller_id   = @me))
         """;
 
-    // Siyahı və detal eyni sütunlardan başlayır (ReadCard indeksləri 0–17).
+    // Siyahı və detal eyni sütunlardan başlayır (ReadCard indeksləri 0–20).
     // Detal əlavə sütunları ListFrom-dan ƏVVƏL qoşur — join-lərdən sonra yazılan
     // «, p.descr» Postgres üçün sütun deyil, «p.descr» adlı cədvəl olardı.
+    // acc.* — qəbul edilmiş istehsalçı (icmaldakı «məhsul yolu» üçün). İstehsalçının
+    // adı yalnız qəbul ediləndən sonra görünür, rəqib təkliflər açılmır.
     private const string ListColumns = """
         select p.id, p.title, p.category, p.status, p.rating, p.price, p.unit_cost, p.moq,
                p.royalty, p.market, p.created_at, p.author_id, u.full_name, u.trust,
                coalesce(pre.qty, 0), coalesce(off.cnt, 0), coalesce(inv.total, 0),
-               coalesce(itr.qty, 0)
+               coalesce(itr.qty, 0), acc.company, acc.full_name, acc.moq
         """;
 
     private const string ListSelect = ListColumns + ListFrom;
@@ -37,6 +39,9 @@ public static class ProjectsApi
         left join (select project_id, sum(qty)    qty   from interests                          group by 1) itr on itr.project_id = p.id
         left join (select project_id, count(*)    cnt   from offers      where status='pending' group by 1) off on off.project_id = p.id
         left join (select project_id, sum(amount) total from investments where status='accepted' group by 1) inv on inv.project_id = p.id
+        left join lateral (
+          select mu.company, mu.full_name, o.moq from offers o join users mu on mu.id = o.maker_id
+          where o.project_id = p.id and o.status = 'accepted' order by o.id desc limit 1) acc on true
         """;
 
     public static void Map(WebApplication app)
@@ -127,13 +132,13 @@ public static class ProjectsApi
             {
                 if (!await r.ReadAsync()) return Api.Err(404, "e_notFound");
                 card = (Dictionary<string, object?>)ReadCard(r);
-                card["descr"] = r.GetString(18);
-                card["risks"] = JsonSerializer.Deserialize<string[]>(r.GetString(19)) ?? [];
-                card["assessedAt"] = r.IsDBNull(20) ? null : r.GetDateTime(20);
+                card["descr"] = r.GetString(21);
+                card["risks"] = JsonSerializer.Deserialize<string[]>(r.GetString(22)) ?? [];
+                card["assessedAt"] = r.IsDBNull(23) ? null : r.GetDateTime(23);
                 // Hesabat bazada mətn kimi saxlanılır, klientə JSON obyekt kimi gedir.
-                card["aiReport"] = r.IsDBNull(21) ? null : JsonDocument.Parse(r.GetString(21)).RootElement.Clone();
-                card["aiLang"] = r.GetString(22);
-                card["aiAt"] = r.IsDBNull(23) ? null : r.GetDateTime(23);
+                card["aiReport"] = r.IsDBNull(24) ? null : JsonDocument.Parse(r.GetString(24)).RootElement.Clone();
+                card["aiLang"] = r.GetString(25);
+                card["aiAt"] = r.IsDBNull(26) ? null : r.GetDateTime(26);
             }
 
             var authorId = (int)card["authorId"]!;
@@ -419,5 +424,8 @@ public static class ProjectsApi
         ["offerCount"] = (int)r.GetInt64(15),
         ["invested"] = r.GetDecimal(16),
         ["interest"] = (int)r.GetInt64(17),
+        ["makerCompany"] = r.IsDBNull(18) ? null : r.GetString(18),
+        ["makerName"] = r.IsDBNull(19) ? null : r.GetString(19),
+        ["makerQty"] = r.IsDBNull(20) ? (int?)null : r.GetInt32(20),
     };
 }

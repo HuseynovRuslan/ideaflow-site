@@ -446,9 +446,47 @@ async function dashboardView() {
   </div>
   <h3 style="margin:8px 0 12px;font-size:17px">${esc(t(listTitle))}</h3>
   ${projects.length
-      ? `<div class="grid g3">${projects.slice(0, 9).map(pcard).join('')}</div>`
+      ? `<div class="journeys">${projects.slice(0, 9).map(journey).join('')}</div>`
       : `<div class="empty">${esc(t('c_empty'))}</div>`}
   ${projects.length > 9 ? `<div style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="#/projects">${esc(t('c_title'))} →</a></div>` : ''}`;
+}
+
+/* İcmal üçün «məhsul yolu»: ideya → istehsalçı → satışa hazır → satıcı → investor.
+   Hər addım bir baxışda kim tərəfindən, nə qədər edildiyini göstərir. */
+function journey(p) {
+  const [bg, em] = COVERS[p.category] || ['#EEE', '📦'];
+  // Satışa hazır miqdar: demoda birbaşa verilir, real layihədə «Satış» mərhələsində
+  // qəbul edilmiş istehsal təklifinin həcmi.
+  const ready = p.stock || (p.status === 'sales' ? p.makerQty : 0) || 0;
+  const maker = p.makerCompany || p.makerName;
+  const step = (icon, label, value, sub, done) => `
+    <div class="jstep ${done ? 'done' : ''}">
+      <div class="jic">${icon}</div>
+      <div class="jl">${esc(label)}</div>
+      <div class="jv">${value}</div>
+      ${sub ? `<div class="js">${sub}</div>` : ''}
+    </div>`;
+  const none = `<span class="muted">${esc(t('j_none'))}</span>`;
+  return `
+  <div class="journey" onclick="go('#/project/${p.id}')">
+    <div class="jhead">
+      <div class="jcover" style="background:${bg}">${em}</div>
+      <div style="flex:1;min-width:0">
+        <h4>${esc(p.title)}</h4>
+        <div class="muted" style="font-size:12.5px">${esc(catL(p.category))}${p.price ? ' · ' + money(p.price) : ''}</div>
+      </div>
+      ${badge(p.status)}
+    </div>
+    <div class="jsteps">
+      ${step('💡', t('j_idea'), esc(p.authorName), '', true)}
+      ${step('🏭', t('j_maker'), maker ? esc(maker) : none,
+        maker && p.makerCompany && p.makerName ? esc(p.makerName) : '', !!maker)}
+      ${step('📦', t('j_ready'), ready ? `${num(ready)} ${esc(t('j_units'))}` : none, '', !!ready)}
+      ${step('🛒', t('j_seller'), p.demand ? `${num(p.demand)} ${esc(t('j_units'))}` : none,
+        p.demand ? esc(t('j_reserved')) : '', !!p.demand)}
+      ${step('📈', t('j_investor'), Number(p.invested) ? money(p.invested) : none, '', !!Number(p.invested))}
+    </div>
+  </div>`;
 }
 
 function pcard(p) {
