@@ -64,6 +64,11 @@ const DICT={
   j_units:['ədəd','шт.','units'],
   j_reserved:['rezerv edilib','зарезервировано','reserved'],
   j_none:['hələ yoxdur','пока нет','not yet'],
+  j_readyN:['ədəd satışa hazır','шт. готово к продаже','units ready for sale'],
+  j_making:['istehsal olunur','производится','in production'],
+  j_findMaker:['istehsalçı axtarılır','ищем производителя','looking for a manufacturer'],
+  j_reservedN:['ədəd rezerv','шт. в резерве','units reserved'],
+  j_example:['Nümunə','Пример','Example'],
   roy_pending:['Admin təyin edəcək','Назначит админ','Set by admin'],
   roy_adminNote:['Royaltini platforma administratoru təyin edir.','Роялти назначает администратор платформы.','Royalty is set by the platform administrator.'],
 

@@ -159,7 +159,10 @@ const Demo = (() => {
     throw new ApiError('e_forbidden', 403); // admin endpoint-ləri və s. — demo istifadəçiyə qapalıdır
   }
 
-  return { handle };
+  /* İcmalın yuxarısında göstərilən nümunə (real layihə deyil). */
+  const example = () => clone(PROJECTS[0]);
+
+  return { handle, example };
 })();
 
 /* ------------------------------------------------------------ giriş/çıxış */

@@ -445,47 +445,44 @@ async function dashboardView() {
       `<div class="tile"><div class="v">${esc(String(v))}</div><div class="k">${esc(t(k))}</div></div>`).join('')}
   </div>
   <h3 style="margin:8px 0 12px;font-size:17px">${esc(t(listTitle))}</h3>
-  ${projects.length
-      ? `<div class="journeys">${projects.slice(0, 9).map(journey).join('')}</div>`
-      : `<div class="empty">${esc(t('c_empty'))}</div>`}
+  <div class="journeys">
+    ${S.demo ? '' : journey(Demo.example(), true)}
+    ${projects.slice(0, 9).map((p) => journey(p)).join('')}
+  </div>
+  ${!projects.length && S.demo ? `<div class="empty">${esc(t('c_empty'))}</div>` : ''}
   ${projects.length > 9 ? `<div style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="#/projects">${esc(t('c_title'))} →</a></div>` : ''}`;
 }
 
-/* İcmal üçün «məhsul yolu»: ideya → istehsalçı → satışa hazır → satıcı → investor.
-   Hər addım bir baxışda kim tərəfindən, nə qədər edildiyini göstərir. */
-function journey(p) {
-  const [bg, em] = COVERS[p.category] || ['#EEE', '📦'];
-  // Satışa hazır miqdar: demoda birbaşa verilir, real layihədə «Satış» mərhələsində
+/* İcmal üçün sadə «məhsul yolu» — bir sətirdə zəncir:
+   💡 kim verib → 🏭 kim istehsal edib → 📦 neçə ədəd satışa hazırdır (→ satıcı → investor).
+   Boş addımlar göstərilmir; yalnız növbəti gözlənilən addım solğun yazılır.
+   example=true — real layihə deyil, icmalın yuxarısındakı nümunə. */
+function journey(p, example = false) {
+  const [, em] = COVERS[p.category] || ['#EEE', '📦'];
+  // Satışa hazır: demoda/nümunədə birbaşa verilir, real layihədə «Satış» mərhələsində
   // qəbul edilmiş istehsal təklifinin həcmi.
   const ready = p.stock || (p.status === 'sales' ? p.makerQty : 0) || 0;
-  const maker = p.makerCompany || p.makerName;
-  const step = (icon, label, value, sub, done) => `
-    <div class="jstep ${done ? 'done' : ''}">
-      <div class="jic">${icon}</div>
-      <div class="jl">${esc(label)}</div>
-      <div class="jv">${value}</div>
-      ${sub ? `<div class="js">${sub}</div>` : ''}
-    </div>`;
-  const none = `<span class="muted">${esc(t('j_none'))}</span>`;
+  const maker = [p.makerCompany, p.makerName].filter(Boolean).join(' · ');
+  const chip = (text, done = true) => `<span class="jchip ${done ? '' : 'wait'}">${text}</span>`;
+
+  const chain = [chip(`💡 ${esc(p.authorName)}`)];
+  if (maker) {
+    chain.push(chip(`🏭 ${esc(maker)}`));
+    chain.push(ready ? chip(`📦 ${num(ready)} ${esc(t('j_readyN'))}`) : chip(`📦 ${esc(t('j_making'))}`, false));
+  } else {
+    chain.push(chip(`🏭 ${esc(t('j_findMaker'))}`, false));
+  }
+  if (p.demand) chain.push(chip(`🛒 ${num(p.demand)} ${esc(t('j_reservedN'))}`));
+  if (Number(p.invested)) chain.push(chip(`📈 ${money(p.invested)}`));
+
   return `
-  <div class="journey" onclick="go('#/project/${p.id}')">
-    <div class="jhead">
-      <div class="jcover" style="background:${bg}">${em}</div>
-      <div style="flex:1;min-width:0">
-        <h4>${esc(p.title)}</h4>
-        <div class="muted" style="font-size:12.5px">${esc(catL(p.category))}${p.price ? ' · ' + money(p.price) : ''}</div>
-      </div>
-      ${badge(p.status)}
+  <div class="journey ${example ? 'example' : ''}" ${example ? '' : `onclick="go('#/project/${p.id}')"`}>
+    <div class="jtop">
+      <span class="jem">${em}</span>
+      <b>${esc(p.title)}</b>
+      ${example ? `<span class="jex">${esc(t('j_example'))}</span>` : ''}
     </div>
-    <div class="jsteps">
-      ${step('💡', t('j_idea'), esc(p.authorName), '', true)}
-      ${step('🏭', t('j_maker'), maker ? esc(maker) : none,
-        maker && p.makerCompany && p.makerName ? esc(p.makerName) : '', !!maker)}
-      ${step('📦', t('j_ready'), ready ? `${num(ready)} ${esc(t('j_units'))}` : none, '', !!ready)}
-      ${step('🛒', t('j_seller'), p.demand ? `${num(p.demand)} ${esc(t('j_units'))}` : none,
-        p.demand ? esc(t('j_reserved')) : '', !!p.demand)}
-      ${step('📈', t('j_investor'), Number(p.invested) ? money(p.invested) : none, '', !!Number(p.invested))}
-    </div>
+    <div class="jflow">${chain.join('<span class="jarr">→</span>')}</div>
   </div>`;
 }
 
