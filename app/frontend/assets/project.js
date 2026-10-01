@@ -6,7 +6,8 @@
 async function renderProject(id, token) {
   shell(`<div class="loading">${t('g_loading')}</div>`);
   try {
-    const p = await API.get('/projects/' + id);
+    // «ex» — Pryzma nümunəsi; serverdə yoxdur, brauzerdəki nümunədən göstərilir.
+    const p = id === 'ex' ? Demo.exampleDetail() : await API.get('/projects/' + id);
     if (token !== S.renderToken) return;
     S.project = p;
     const tabs = projectTabs(p);
@@ -46,7 +47,7 @@ function projectHtml() {
   <section class="phero" style="--cov:${bg}">
     <div class="phic">${em}</div>
     <div class="phtext">
-      <div class="phchips">${badge(p.status)}<span class="chip">${esc(catL(p.category))}</span></div>
+      <div class="phchips">${p.example ? `<span class="jex">${esc(t('j_example'))}</span>` : ''}${badge(p.status)}<span class="chip">${esc(catL(p.category))}</span></div>
       <h1>${esc(p.title)}</h1>
       <p>${esc(t('p_author'))}: <b>${esc(p.authorName)}</b> · ${fdate(p.createdAt)}</p>
     </div>
@@ -127,7 +128,7 @@ function aboutTab(p) {
 }
 
 /* Layihəni idarə edən: müəllif və ya admin. */
-function isManager(p) { return S.me.role === 'admin' || p.authorId === S.me.id; }
+function isManager(p) { return !p.example && (S.me.role === 'admin' || p.authorId === S.me.id); }
 
 /* Açıq linki paylaşmaq — tələbin platformadan kənar yoxlanışı. */
 function shareCard(p) {

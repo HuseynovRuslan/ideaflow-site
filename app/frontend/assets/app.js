@@ -66,7 +66,7 @@ async function render() {
   // --- admin paneli ayrıca modul ---
   if (first === 'admin') return void (await renderAdmin(parts.slice(1), token));
 
-  if (first === 'project' && parts[1]) return void (await renderProject(Number(parts[1]), token));
+  if (first === 'project' && parts[1]) return void (await renderProject(parts[1] === 'ex' ? 'ex' : Number(parts[1]), token));
   if (first === 'contract' && parts[1]) return void (await renderContract(Number(parts[1]), token));
 
   const views = {
@@ -609,7 +609,7 @@ function journey(p, example = false) {
   if (Number(p.invested)) nodes.push(node('trending', t('j_investor'), money(p.invested), true));
 
   return `
-  <article class="jcard ${example ? 'example' : ''}" ${example ? '' : `onclick="go('#/project/${p.id}')" tabindex="0" onkeydown="if(event.key==='Enter')go('#/project/${p.id}')"`}>
+  <article class="jcard ${example ? 'example' : ''}" ${example ? (S.me ? `onclick="go('#/project/ex')" style="cursor:pointer"` : '') : `onclick="go('#/project/${p.id}')" tabindex="0" onkeydown="if(event.key==='Enter')go('#/project/${p.id}')"`}>
     <div class="jcov" style="background:${bg}">${em}</div>
     <div class="jbody">
       <div class="jtitle"><h3>${esc(p.title)}</h3>
@@ -623,8 +623,8 @@ function journey(p, example = false) {
 function pcard(p) {
   const [bg, em] = COVERS[p.category] || ['#EEE', '📦'];
   return `
-  <div class="pcard" onclick="go('#/project/${p.id}')">
-    <div class="cover" style="background:${bg}">${em}</div>
+  <div class="pcard ${p.example ? 'example' : ''}" onclick="go('#/project/${p.id}')">
+    <div class="cover" style="background:${bg}">${em}${p.example ? `<span class="jex pex">${esc(t('j_example'))}</span>` : ''}</div>
     <div class="pb">
       <h4>${esc(p.title)}</h4>
       <div class="meta">${esc(t('p_author'))}: ${esc(p.authorName)} · ${esc(catL(p.category))}</div>
@@ -641,7 +641,12 @@ function pcard(p) {
 /* ============================== KATALOQ ============================== */
 async function projectsView() {
   const q = S.search ? '&q=' + encodeURIComponent(S.search) : '';
-  const list = await API.get(`/projects?cat=${encodeURIComponent(S.filterCat)}${q}`);
+  const real = await API.get(`/projects?cat=${encodeURIComponent(S.filterCat)}${q}`);
+  // Pryzma nümunəsi kataloqda da görünür — kateqoriya və axtarış filtrlərinə tabe olaraq.
+  const ex = S.demo ? null : Demo.exampleDetail();
+  const showEx = ex && (S.filterCat === 'all' || S.filterCat === ex.category) &&
+    (!S.search || ex.title.toLowerCase().includes(S.search.toLowerCase()));
+  const list = showEx ? [ex, ...real] : real;
   const cats = ['all', ...CATS];
   return `
   <div class="page-h"><div><h1>${esc(t('c_title'))}</h1><p>${esc(t('c_sub'))}</p></div></div>
@@ -701,19 +706,26 @@ async function createProject(e) {
 
 /* ===================== İSTEHSALÇI / İNVESTOR SİYAHISI ===================== */
 async function directoryView(role) {
-  const list = await API.get('/directory/' + role);
+  const real = await API.get('/directory/' + role);
+  // İstehsalçılar siyahısında Pryzma nümunəsinin istehsalçısı da göstərilir (demo rejimində o onsuz da var).
+  const list = role === 'maker' && !S.demo ? [Demo.exampleMaker(), ...real] : real;
   const title = role === 'maker' ? 'mk_title' : 'in_title';
   const sub = role === 'maker' ? 'mk_sub' : 'in_sub';
+  const ic = role === 'maker' ? 'factory' : 'trending';
   return `
   <div class="page-h"><div><h1>${esc(t(title))}</h1><p>${esc(t(sub))}</p></div></div>
   ${list.length ? `<div class="grid g3">${list.map((m) => `
-    <div class="card">
-      <h3>${esc(m.name)}</h3>
-      <p class="muted" style="font-size:13px">${esc(m.company || '—')}</p>
-      <div style="margin-top:10px;font-size:13px">
-        🛡 ${esc(t('ad_trust'))}: ${trustBar(m.trust)}
+    <div class="card dircard ${m.example ? 'example' : ''}">
+      <div class="dirhead">
+        <span class="av" style="--c:${role === 'maker' ? 'var(--maker)' : 'var(--investor)'}">${icon(ic, 20)}</span>
+        <div style="min-width:0;flex:1"><h3>${esc(m.company || m.name)}</h3>
+          <p class="muted" style="font-size:13px">${esc(m.company ? m.name : '—')}</p></div>
+        ${m.example ? `<span class="jex">${esc(t('j_example'))}</span>` : ''}
       </div>
-      <div class="muted" style="font-size:12.5px;margin-top:6px">${m.deals} ${esc(t('an_t3'))}</div>
+      <div class="kv"><span>${esc(t('ad_trust'))}</span><b>${trustBar(m.trust)}</b></div>
+      <div class="kv"><span>${esc(t('an_t3'))}</span><b>${m.deals}</b></div>
+      ${m.example ? `<a class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" href="#/project/ex">
+        👕 ${esc(Demo.example().title)}</a>` : ''}
     </div>`).join('')}</div>` : `<div class="empty">${esc(t('c_empty'))}</div>`}`;
 }
 

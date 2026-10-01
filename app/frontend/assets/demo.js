@@ -162,7 +162,20 @@ const Demo = (() => {
   /* İcmalın yuxarısında göstərilən nümunə (real layihə deyil). */
   const example = () => clone(PROJECTS[0]);
 
-  return { handle, example };
+  /* Kataloq və layihə səhifəsi üçün nümunə: id «ex», heç bir əməliyyat açıq deyil —
+     real API-yə sorğu getməsin deyə bütün «can» bayraqları söndürülür. */
+  function exampleDetail() {
+    const p = card(PROJECTS[0], { id: -1, role: 'viewer' });
+    return clone({
+      ...p, id: 'ex', example: true, participant: false,
+      can: { edit: false, assess: false, aiAssess: false, offer: false, invest: false, preorder: false, transitions: [], contract: false },
+    });
+  }
+
+  /* İstehsalçılar siyahısı üçün nümunə istehsalçı. */
+  const exampleMaker = () => ({ ...clone(DIRECTORY.maker[0]), example: true });
+
+  return { handle, example, exampleDetail, exampleMaker };
 })();
 
 /* ------------------------------------------------------------ giriş/çıxış */
