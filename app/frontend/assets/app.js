@@ -239,18 +239,40 @@ function notifDropdown() {
 function toggleNotifs() { S.showN = !S.showN; render(); }
 
 /* ================================ LANDING ================================ */
+/* Qonağın ilk ekranı. Məqsəd: bir neçə saniyədə «bu nədir, kimə lazımdır,
+   mən nə qazanıram» aydın olsun. Hero-dakı «ideyanın yolu» kartı bütün modeli
+   bir baxışda göstərir: kim nə edir və pul müəllifə necə qayıdır. */
+function lpScroll(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+
 function landingView() {
-  const roles = ['author', 'maker', 'investor', 'seller'];
-  const roleIcon = { author: 'bulb', maker: 'factory', investor: 'trending', seller: 'store' };
-  const steps = [['bulb', 'ls_1'], ['sparkles', 'ls_2'], ['factory', 'ls_3'], ['store', 'ls_4']];
+  // [ikon, rəng, i18n açarı] — ardıcıllıq real mərhələ sırasıdır.
+  const route = [
+    ['bulb', 'var(--author)', 'lp_r1'],
+    ['sparkles', 'var(--accent)', 'lp_r2'],
+    ['factory', 'var(--maker)', 'lp_r3'],
+    ['trending', 'var(--investor)', 'lp_r4'],
+    ['store', 'var(--seller)', 'lp_r5'],
+  ];
+  const roles = [
+    ['author', 'bulb', rl('author'), 'a'],
+    ['maker', 'factory', t('j_maker'), 'm'],
+    ['investor', 'trending', rl('investor'), 'i'],
+    ['seller', 'store', rl('seller'), 's'],
+  ];
+  const cascade = ['var(--platform)', 'var(--author)', 'var(--investor)', 'var(--seller)'];
   const ex = Demo.example();
+  const anchor = (id, k, cls = '') =>
+    `<a ${cls ? `class="${cls}"` : ''} href="#${id}" onclick="event.preventDefault();lpScroll('${id}')">${esc(t(k))}</a>`;
+
   return `
   <div class="land">
     <header class="lnav">
       <a class="brand" href="#/"><span class="m">${logoSvg()}</span>IdeaFlow</a>
-      <nav class="llinks">
-        <a onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">${esc(t('ln_how'))}</a>
-        <a onclick="document.getElementById('roles').scrollIntoView({behavior:'smooth'})">${esc(t('ln_roles'))}</a>
+      <nav class="llinks" aria-label="${esc(t('nav_menu'))}">
+        ${anchor('how', 'ln_how')}${anchor('roles', 'ln_roles')}${anchor('faq', 'ln_faq')}
       </nav>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-sm" onclick="cycleLang()" aria-label="${esc(t('top_lang'))}">${S.lang.toUpperCase()}</button>
@@ -260,67 +282,84 @@ function landingView() {
 
     <section class="lhero">
       <div class="lcopy">
-        <span class="pill">${icon('sparkles', 16)} ${esc(t('l_pill'))}</span>
-        <h1>${esc(t('l_h1a'))} <span class="g">${esc(t('l_h1b'))}</span></h1>
-        <p>${esc(t('l_sub'))}</p>
+        <h1>${esc(t('lp_h1'))}</h1>
+        <p class="lsub">${esc(t('lp_sub'))}</p>
         <div class="lcta">
-          <a class="btn btn-primary btn-lg" href="#/register">${esc(t('a_register'))} ${icon('arrow', 18)}</a>
-          <a class="btn btn-ghost btn-lg" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">${esc(t('ln_how'))}</a>
+          <a class="btn btn-primary btn-lg" href="#/register">${esc(t('a_register'))}</a>
+          ${anchor('how', 'ln_how', 'btn btn-ghost btn-lg')}
         </div>
-        <div class="ltrust">
-          ${['lt_1', 'lt_2', 'lt_3'].map((k) => `<span>${icon('check', 16)} ${esc(t(k))}</span>`).join('')}
-        </div>
+        <ul class="lfacts">
+          ${['lp_f1', 'lp_f2', 'lp_f3'].map((k) => `<li>${icon('check', 16)}<span>${esc(t(k))}</span></li>`).join('')}
+        </ul>
       </div>
-      <div class="lvisual" aria-hidden="true">
-        <div class="fcard f1"><span class="fi" style="--c:var(--author)">${icon('bulb')}</span>
-          <div><small>${esc(t('j_idea'))}</small><b>${esc(ex.authorName)}</b></div></div>
-        <div class="fcard f2"><span class="fi" style="--c:var(--maker)">${icon('factory')}</span>
-          <div><small>${esc(t('j_maker'))}</small><b>${esc(ex.makerCompany)}</b></div></div>
-        <div class="fcard f3"><span class="fi" style="--c:var(--investor)">${icon('box')}</span>
-          <div><small>${esc(t('j_ready'))}</small><b>${num(ex.stock)} ${esc(t('j_units'))}</b></div></div>
-        <div class="fproduct"><span>👕</span><b>${esc(ex.title)}</b></div>
-      </div>
+
+      <figure class="lroute">
+        <figcaption>${esc(t('lp_route'))}</figcaption>
+        <ol>
+          ${route.map(([ic, c, k], i) => `
+            <li style="--c:${c};--i:${i}"><span class="rdot">${icon(ic, 18)}</span>
+              <p><b>${esc(t(k + 't'))}</b> ${esc(t(k))}</p></li>`).join('')}
+          <li class="rback" style="--i:5"><span class="rdot">${icon('coins', 18)}</span>
+            <p><b>${esc(t('lp_r6t'))}</b> ${esc(t('lp_r6'))}</p></li>
+        </ol>
+      </figure>
     </section>
 
     <section class="lsec" id="how">
-      <div class="lhead"><span class="kick">${esc(t('ln_how'))}</span><h2>${esc(t('ls_title'))}</h2></div>
-      <div class="lsteps">
-        ${steps.map(([ic, k], i) => `
-          <div class="lstep">
-            <span class="num">${i + 1}</span>
-            <span class="si">${icon(ic, 24)}</span>
-            <h3>${esc(t(k))}</h3>
-            <p>${esc(t(k + 'd'))}</p>
-          </div>`).join('')}
-      </div>
-    </section>
-
-    <section class="lsec" id="roles">
-      <div class="lhead"><span class="kick">${esc(t('ln_roles'))}</span><h2>${esc(t('l_enterTitle'))}</h2>
-        <p>${esc(t('a_regSub'))}</p></div>
-      <div class="lroles">
-        ${roles.map((r) => `
-          <a class="lrole" style="--c:${ROLE_META[r].color}" href="#/register/${r}">
-            <span class="ri">${icon(roleIcon[r], 26)}</span>
-            <h3>${esc(rl(r))}</h3>
-            <p>${esc(t('vw_' + r))}</p>
-            <span class="go">${esc(t('a_register'))} ${icon('arrow', 16)}</span>
-          </a>`).join('')}
-      </div>
-    </section>
-
-    <section class="lsec">
-      <div class="lstory">
-        <div class="lhead" style="text-align:left;margin:0"><span class="kick">${esc(t('j_example'))}</span>
-          <h2>${esc(ex.title)}</h2><p>${esc(ex.descr)}</p></div>
+      <header class="lhd"><h2>${esc(t('lp_howT'))}</h2><p>${esc(t('lp_howS'))}</p></header>
+      <ol class="ltl">
+        ${[1, 2, 3, 4, 5].map((n) => `
+          <li><span class="tn">${n}</span>
+            <div><h3>${esc(t(`lp_s${n}t`))}</h3><p>${esc(t(`lp_s${n}`))}</p></div></li>`).join('')}
+      </ol>
+      <div class="lex">
+        <p class="lexl">${esc(t('lp_exT'))}</p>
         ${journey(ex, true)}
       </div>
     </section>
 
+    <section class="lsec" id="roles">
+      <header class="lhd"><h2>${esc(t('lp_rolesT'))}</h2><p>${esc(t('lp_rolesS'))}</p></header>
+      <div class="lroles">
+        ${roles.map(([r, ic, name, p]) => `
+          <article class="lrole" style="--c:${ROLE_META[r].color}">
+            <h3><span class="ri">${icon(ic, 22)}</span>${esc(name)}</h3>
+            <dl>
+              <dt>${esc(t('lp_do'))}</dt><dd>${esc(t(`lp_${p}Do`))}</dd>
+              <dt>${esc(t('lp_get'))}</dt><dd>${esc(t(`lp_${p}Get`))}</dd>
+            </dl>
+            <a class="go" href="#/register/${r}">${esc(t('a_register'))}</a>
+          </article>`).join('')}
+      </div>
+    </section>
+
+    <section class="lsec lmoney">
+      <header class="lhd">
+        <h2>${esc(t('lp_moneyT'))}</h2><p>${esc(t('lp_moneyS'))}</p>
+        <p class="lnote">${esc(t('lp_moneyNote'))}</p>
+      </header>
+      <ol class="lcascade">
+        ${cascade.map((c, i) => `
+          <li style="--c:${c};--n:${i}" class="${i === 1 ? 'me' : ''}">
+            <span class="cn">${i + 1}</span><b>${esc(t(`lp_w${i + 1}t`))}</b><small>${esc(t(`lp_w${i + 1}`))}</small></li>`).join('')}
+      </ol>
+    </section>
+
+    <section class="lsec lfaq" id="faq">
+      <header class="lhd"><h2>${esc(t('lp_faqT'))}</h2></header>
+      <div class="lqa">
+        ${[1, 2, 3, 4, 5].map((n) => `
+          <details><summary>${esc(t(`lp_q${n}`))}</summary><p>${esc(t(`lp_a${n}`))}</p></details>`).join('')}
+      </div>
+    </section>
+
     <section class="lfinal">
-      <h2>${esc(t('lf_title'))}</h2>
-      <p>${esc(t('lf_sub'))}</p>
-      <a class="btn btn-lg lfbtn" href="#/register">${esc(t('a_register'))} ${icon('arrow', 18)}</a>
+      <h2>${esc(t('lp_finT'))}</h2>
+      <p>${esc(t('lp_finS'))}</p>
+      <div class="lfbtns">
+        <a class="btn btn-lg lfbtn" href="#/register">${esc(t('a_register'))}</a>
+        ${anchor('roles', 'lp_finRole', 'btn btn-lg lfbtn2')}
+      </div>
     </section>
     <footer class="lfoot"><span>© ${new Date().getFullYear()} IdeaFlow</span>
       <span>${esc(t('a_hasAcc'))} <a href="#/login">${esc(t('a_login'))}</a></span></footer>

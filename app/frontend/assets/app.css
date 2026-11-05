@@ -605,63 +605,151 @@
   .pstats small{display:block;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
   .pstats b{font-size:18px;font-weight:900}
 
-  /* landing */
-  .land{background:var(--bg)}
+  /* landing — qonağın ilk ekranı */
+  .land{background:var(--bg);overflow-x:clip}
+  .land section[id]{scroll-margin-top:84px}
   .lnav{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:14px 40px;
     background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
   .llinks{display:flex;gap:4px;margin-left:24px}
   .llinks a{padding:8px 12px;border-radius:10px;font-weight:750;font-size:14.5px;color:var(--muted)}
   .llinks a:hover{color:var(--ink);background:var(--soft)}
-  .lhero{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center;max-width:1200px;margin:0 auto;padding:72px 40px 56px}
-  .lcopy .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:850;padding:7px 14px;border-radius:999px;background:var(--accent-soft);color:var(--accent-hover)}
-  .lcopy h1{font-size:clamp(38px,5.4vw,66px);font-weight:900;letter-spacing:-.04em;line-height:1.03;margin:18px 0}
-  .lcopy h1 .g{background:linear-gradient(100deg,#EA580C,#E11D48);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .lcopy p{font-size:18px;color:var(--muted);max-width:520px}
-  .lcta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
   .btn-lg{min-height:52px;padding:13px 24px;font-size:16px;border-radius:14px}
-  .ltrust{display:flex;gap:18px;flex-wrap:wrap;margin-top:24px;font-size:13.5px;font-weight:750;color:var(--muted)}
-  .ltrust span{display:inline-flex;align-items:center;gap:6px}
-  .ltrust .ico{color:var(--accent-2)}
-  .lvisual{position:relative;height:440px;border-radius:32px;background:var(--sunset);box-shadow:var(--shadow-lg);overflow:hidden}
-  .lvisual:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 70%,rgba(255,255,255,.2),transparent 45%)}
-  .fcard{position:absolute;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:18px;background:rgba(255,255,255,.96);color:#2B1D14;
-    box-shadow:0 18px 40px rgba(67,20,7,.3);animation:float 6s ease-in-out infinite}
-  .fcard small{display:block;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#735F50}
-  .fcard b{font-size:15px}
-  .fi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;background:var(--c)}
-  .f1{top:44px;left:34px}.f2{top:168px;right:30px;animation-delay:-2s}.f3{bottom:118px;left:56px;animation-delay:-4s}
-  .fproduct{position:absolute;right:36px;bottom:34px;display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;
-    background:rgba(43,29,20,.55);color:#fff;backdrop-filter:blur(6px);font-size:14px}
-  .fproduct span{font-size:24px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#FFE4E6}
-  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-  .lsec{max-width:1200px;margin:0 auto;padding:56px 40px}
-  .lhead{text-align:center;max-width:660px;margin:0 auto 32px}
-  .kick{display:inline-block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
-  .lhead h2{font-size:clamp(26px,3.4vw,40px);font-weight:900;letter-spacing:-.03em;margin:6px 0 8px;line-height:1.12}
-  .lhead p{color:var(--muted);font-size:16px}
-  .lsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-  .lstep{position:relative;padding:24px 20px;border-radius:22px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
-  .lstep .num{position:absolute;top:16px;right:20px;font-size:44px;font-weight:900;color:var(--soft);line-height:1}
-  .lstep .si{position:relative;width:50px;height:50px;border-radius:15px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-bottom:16px}
-  .lstep h3{font-size:17px;font-weight:900;margin-bottom:6px}
-  .lstep p{font-size:14px;color:var(--muted)}
-  .lroles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-  .lrole{display:flex;flex-direction:column;padding:24px 20px;border-radius:22px;background:var(--surface);border:1.5px solid var(--line);
-    transition:transform .15s,box-shadow .15s,border-color .15s}
-  .lrole:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--c)}
-  .lrole .ri{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--surface));margin-bottom:16px}
-  .lrole h3{font-size:18px;font-weight:900;margin-bottom:6px}
-  .lrole p{font-size:14px;color:var(--muted);flex:1}
-  .lrole .go{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-weight:850;font-size:14px;color:var(--c)}
-  .lstory{display:grid;grid-template-columns:1fr 1.35fr;gap:28px;align-items:center;padding:32px;border-radius:30px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
-  .lstory .lhead p{font-size:15px}
-  .lfinal{max-width:1120px;margin:16px auto 0;padding:56px 40px;border-radius:32px;text-align:center;background:var(--sunset);color:#FFF7ED;box-shadow:var(--shadow-lg)}
-  .lfinal h2{font-size:clamp(26px,3.6vw,42px);font-weight:900;letter-spacing:-.03em}
-  .lfinal p{color:#FED7AA;font-size:17px;margin:8px 0 24px}
+
+  /* hero: solda izah, sağda «ideyanın yolu» */
+  .lhero{isolation:isolate;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:64px;align-items:center;
+    max-width:1200px;margin:0 auto;padding:72px 40px 72px}
+  .lcopy h1{font-size:clamp(30px,4.6vw,56px);font-weight:900;letter-spacing:-.035em;line-height:1.07;text-wrap:balance}
+  .lsub{font-size:18px;line-height:1.6;color:var(--muted);max-width:56ch;margin-top:20px}
+  .lcta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+  .lfacts{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:26px;font-size:14.5px;font-weight:700}
+  .lfacts li{display:flex;align-items:center;gap:10px}
+  .lfacts .ico{flex:none;width:22px;height:22px;padding:3px;border-radius:50%;background:var(--accent-2-soft);color:var(--accent-2)}
+
+  .lroute{position:relative;margin:0;padding:28px 28px 22px;border-radius:28px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lg)}
+  .lroute:before{content:"";position:absolute;inset:24px -20px -20px 24px;z-index:-1;border-radius:30px;background:var(--sunset)}
+  .lroute figcaption{font-size:14px;font-weight:850;color:var(--muted);margin-bottom:8px}
+  .lroute ol{list-style:none}
+  .lroute li{position:relative;display:flex;align-items:center;gap:14px;padding:9px 0 9px 38px}
+  .rdot{position:relative;z-index:1;flex:none;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:#fff;
+    background:var(--c);box-shadow:0 6px 14px color-mix(in srgb,var(--c) 30%,transparent)}
+  [data-theme=dark] .rdot{color:#15100C}
+  .lroute p{font-size:15.5px;line-height:1.4;color:var(--muted)}
+  .lroute p b{color:var(--ink);font-weight:900}
+  /* proses xətti — nöqtələri yuxarıdan aşağı birləşdirir */
+  .lroute li:before{content:"";position:absolute;left:58px;top:0;bottom:0;width:2px;background:color-mix(in srgb,var(--muted) 35%,var(--line));transform-origin:top}
+  .lroute li:first-child:before{top:50%}
+  .lroute li:last-child:before{bottom:50%}
+  /* qayıdış xətti — royalti aşağıdan müəllifə qayıdır */
+  .lroute li:after{content:"";position:absolute;left:10px;width:28px;top:0;bottom:0;border-left:2px dashed var(--gold)}
+  .lroute li:first-child:after{top:50%;border-top:2px dashed var(--gold);border-top-left-radius:16px}
+  .lroute li:last-child:after{bottom:50%;border-bottom:2px dashed var(--gold);border-bottom-left-radius:16px}
+  .lroute li:first-child .rdot:after{content:"";position:absolute;left:-9px;top:50%;margin-top:-6px;border:6px solid transparent;border-left:8px solid var(--gold);border-right:0}
+  .lroute .rback{--c:var(--gold)}
+  .lroute .rback p{padding:8px 12px;border-radius:12px;color:var(--ink);background:color-mix(in srgb,var(--gold) 13%,var(--surface))}
+  @media(prefers-reduced-motion:no-preference){
+    .lroute li{animation:lpIn .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 170ms + 150ms)}
+    .lroute li:before{animation:lpLine .4s ease-out both;animation-delay:calc(var(--i) * 170ms + 150ms)}
+    .lroute li:after{animation:lpFade .7s ease-out both;animation-delay:1.25s}
+  }
+  @keyframes lpIn{from{opacity:0;transform:translateY(8px)}}
+  @keyframes lpLine{from{transform:scaleY(0)}}
+  @keyframes lpFade{from{opacity:0}}
+
+  /* bölmələr */
+  .lsec{max-width:1200px;margin:0 auto;padding:64px 40px}
+  .lhd{max-width:640px;margin-bottom:32px}
+  .lhd h2{font-size:clamp(26px,3.2vw,38px);font-weight:900;letter-spacing:-.03em;line-height:1.12;text-wrap:balance}
+  .lhd p{color:var(--muted);font-size:16.5px;line-height:1.6;margin-top:10px;max-width:60ch}
+
+  /* necə işləyir — mərhələ xətti */
+  .ltl{list-style:none;position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px}
+  .ltl:before{content:"";position:absolute;left:22px;right:22px;top:21px;height:2px;background:color-mix(in srgb,var(--accent) 30%,var(--line))}
+  .ltl li{position:relative}
+  .tn{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;margin-bottom:14px;
+    background:var(--bg);border:2px solid var(--accent);color:var(--accent);font-weight:900;font-size:17px}
+  .ltl h3{font-size:17px;font-weight:900;margin-bottom:6px}
+  .ltl p{font-size:14.5px;line-height:1.55;color:var(--muted)}
+  .lex{margin-top:44px;max-width:760px}
+  .lexl{font-size:14px;font-weight:800;color:var(--muted);margin-bottom:10px}
+
+  /* kimlər üçün */
+  .lroles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .lrole{display:flex;flex-direction:column;padding:26px;border-radius:22px;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c)}
+  .lrole h3{display:flex;align-items:center;gap:12px;font-size:19px;font-weight:900;margin-bottom:18px}
+  .lrole .ri{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--surface))}
+  .lrole dl{flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 18px}
+  .lrole dt{font-size:13.5px;font-weight:850;color:var(--muted);padding-top:2px;white-space:nowrap}
+  .lrole dd{font-size:15px;line-height:1.5}
+  .lrole .go{align-self:flex-start;margin-top:20px;font-weight:850;font-size:14.5px;color:var(--c);border-bottom:2px solid color-mix(in srgb,var(--c) 35%,transparent)}
+  .lrole .go:hover{border-bottom-color:var(--c)}
+
+  /* pul necə bölünür — pilləkən: gəlir yuxarıdan aşağı axır */
+  .lmoney{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+  .lmoney .lhd{margin:0}
+  .lhd .lnote{font-size:14px;margin-top:16px;padding-left:12px;border-left:3px solid var(--line)}
+  .lcascade{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .lcascade li{display:flex;align-items:center;gap:12px;padding:14px 18px;margin-left:calc(var(--n) * 36px);border-radius:16px;
+    background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c)}
+  .lcascade .cn{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;color:#fff;background:var(--c)}
+  [data-theme=dark] .lcascade .cn{color:#15100C}
+  .lcascade b{font-size:16px;font-weight:900}
+  .lcascade small{margin-left:auto;font-size:14px;color:var(--muted);text-align:right}
+  .lcascade li.me{background:color-mix(in srgb,var(--author) 8%,var(--surface));border-color:color-mix(in srgb,var(--author) 30%,var(--line));border-left-color:var(--author)}
+
+  /* suallar */
+  .lfaq{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:56px;align-items:start}
+  .lfaq .lhd{margin:0;position:sticky;top:100px}
+  .lqa{border-top:1px solid var(--line)}
+  .lqa details{border-bottom:1px solid var(--line)}
+  .lqa summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 4px;font-size:16.5px;font-weight:850;cursor:pointer}
+  .lqa summary::-webkit-details-marker{display:none}
+  .lqa summary:after{content:"+";flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+    background:var(--soft);color:var(--accent);font-size:20px;font-weight:700;transition:transform .2s}
+  .lqa details[open] summary:after{transform:rotate(45deg)}
+  .lqa p{padding:0 4px 20px;color:var(--muted);font-size:15.5px;line-height:1.65;max-width:68ch}
+
+  /* son çağırış */
+  .lfinal{max-width:1120px;margin:24px auto 0;padding:56px 40px;border-radius:32px;text-align:center;background:var(--sunset);color:#FFF7ED;box-shadow:var(--shadow-lg)}
+  .lfinal h2{font-size:clamp(26px,3.6vw,42px);font-weight:900;letter-spacing:-.03em;line-height:1.15;text-wrap:balance}
+  .lfinal p{color:#FED7AA;font-size:17px;margin:10px auto 26px;max-width:56ch}
+  .lfbtns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
   .lfbtn{background:#FFF7ED;color:#9A3412}
   .lfbtn:hover{background:#fff}
+  .lfbtn2{background:transparent;color:#FFF7ED;border-color:rgba(255,247,237,.45)}
+  .lfbtn2:hover{background:rgba(255,255,255,.1);border-color:#FFF7ED}
   .lfoot{max-width:1200px;margin:0 auto;padding:28px 40px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:14px}
   .lfoot a{color:var(--accent);font-weight:850}
+
+  @media(max-width:980px){
+    .lhero{grid-template-columns:1fr;padding:44px 24px 48px;gap:44px}
+    .lroute{max-width:540px}
+    .ltl{grid-template-columns:1fr;gap:0}
+    .ltl:before{left:21px;right:auto;top:22px;bottom:22px;width:2px;height:auto}
+    .ltl li{display:flex;gap:16px;padding-bottom:22px}
+    .ltl li:last-child{padding-bottom:0}
+    .tn{flex:none;margin:0}
+    .lmoney,.lfaq{grid-template-columns:1fr;gap:28px}
+    .lfaq .lhd{position:static}
+  }
+  @media(max-width:820px){
+    .lnav{padding:12px 16px}
+    .llinks,.lhide{display:none}
+    .lhero{padding:32px 16px 40px}
+    .lsec{padding:44px 16px}
+    .lfinal{margin:8px 16px 0;padding:36px 20px;border-radius:26px}
+    .lfoot{padding:24px 16px}
+  }
+  @media(max-width:620px){
+    .lroles{grid-template-columns:1fr}
+    .lrole{padding:22px}
+    .lrole dl{grid-template-columns:1fr;gap:2px}
+    .lrole dd+dt{margin-top:10px}
+    .lroute{padding:22px 16px 18px}
+    .lroute:before{inset:16px -8px -12px 14px}
+    .lroute p{font-size:15px}
+    .lcascade li{flex-wrap:wrap;margin-left:calc(var(--n) * 14px);padding:12px 14px;gap:4px 12px}
+    .lcascade small{flex-basis:100%;margin-left:40px;text-align:left}
+  }
 
   /* iki hissəli giriş / qeydiyyat */
   .authsplit{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
@@ -685,10 +773,6 @@
     .dside{position:static;display:grid;grid-template-columns:1fr 1fr}
   }
   @media(max-width:980px){
-    .lhero{grid-template-columns:1fr;padding:44px 20px 28px;gap:28px}
-    .lvisual{height:340px}
-    .lsteps,.lroles{grid-template-columns:1fr 1fr}
-    .lstory{grid-template-columns:1fr;padding:22px}
     .authsplit{grid-template-columns:1fr}
     .authbrand{padding:72px 20px 24px;gap:16px}
     .abcopy h2{font-size:26px;margin-bottom:12px}
@@ -733,17 +817,8 @@
     .phic{width:64px;height:64px;font-size:34px;border-radius:18px}
     .phring{display:none}
     .pstats{grid-template-columns:1fr 1fr}
-    .lnav{padding:12px 16px}
-    .llinks,.lhide{display:none}
-    .lsec{padding:40px 18px}
-    .lfinal{margin:8px 16px 0;padding:36px 20px;border-radius:26px}
-    .lfoot{padding:24px 18px}
   }
   @media(max-width:560px){
-    .lsteps,.lroles{grid-template-columns:1fr}
-    .lvisual{height:300px}
-    .f1{left:14px;top:28px}.f2{right:12px;top:128px}.f3{left:18px;bottom:96px}
-    .fproduct{right:14px;bottom:20px}
     .jtitle h3{font-size:15px}
   }
 
@@ -755,14 +830,6 @@
     .jtitle{grid-area:title;margin:0}
     .jprog{grid-area:prog}
     .jnodes{grid-area:nodes}
-  }
-  @media(max-width:560px){
-    .lvisual{height:330px}
-    .fcard{padding:10px 14px}
-    .f1{top:22px;left:14px;bottom:auto}
-    .f2{top:104px;right:12px;left:auto;bottom:auto}
-    .f3{top:186px;left:18px;bottom:auto}
-    .fproduct{right:12px;bottom:16px}
   }
 
   /* İstehsalçılar siyahısı və nümunə nişanları */
