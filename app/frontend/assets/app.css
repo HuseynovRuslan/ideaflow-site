@@ -838,3 +838,115 @@
   .dircard.example,.pcard.example{border:1.5px solid color-mix(in srgb,var(--accent-2) 45%,var(--line))}
   .pcard .cover{position:relative}
   .pex{position:absolute;top:10px;right:10px}
+
+  /* ============================================================
+     Elanlar — /elan və /elan/{id} (calls.js)
+     ============================================================ */
+  .cwrap{min-height:100vh;max-width:1080px;margin:0 auto;padding:14px 16px 40px}
+  .ctop{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .ctop .brand{display:flex;align-items:center;gap:9px;font-weight:850;font-size:18px;margin-right:6px}
+  .ctop .brand .m{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#F97316,#E11D48);display:grid;place-items:center}
+  .ctop .btn{gap:6px}
+  .ctlink{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:850;color:var(--muted);padding:8px 10px;border-radius:10px}
+  .ctlink:hover{color:var(--accent);background:var(--accent-soft)}
+
+  .callhead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:6px 0 20px}
+  .callhead h1{font-size:clamp(26px,3.4vw,36px);font-weight:900;letter-spacing:-.03em}
+  .callhead p{color:var(--muted);font-size:15.5px;line-height:1.55;margin-top:6px;max-width:60ch}
+
+  .callgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+  .callcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}
+  .callcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+  .callcard.closed{opacity:.78}
+  .cc-cover{height:120px;display:grid;place-items:center;font-size:54px}
+  .cc-body{display:flex;flex-direction:column;gap:8px;padding:16px 18px 18px;flex:1}
+  .cc-body h3{font-size:18.5px;font-weight:880;letter-spacing:-.01em;line-height:1.25}
+  .cc-org{font-size:13px;color:var(--muted);font-weight:700}
+  .cc-ex{font-size:14px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .cc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:auto;padding-top:8px;font-size:13.5px;font-weight:750}
+  .cc-go{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-weight:900}
+  .callchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .callchips .chip{display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+
+  /* elan səhifəsi — oxunaqlı en, mobil üçün tək sütun */
+  .cwrap .back,.callmain,#callsubmit,.callentries{max-width:760px;margin-left:auto;margin-right:auto}
+  .cwrap .back{display:flex}
+  .callmain .pubhero{height:170px;font-size:76px}
+  .callorg{font-size:14px;margin-top:2px}
+  .callcta{width:100%;margin-top:16px}
+  .callshare{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .callshare .btn{gap:6px}
+  .callnote{margin-top:10px;padding:14px 16px;border-radius:12px;background:var(--soft);font-size:14.5px;line-height:1.5}
+  .callp{font-size:14.5px;line-height:1.55;margin:6px 0 14px}
+  .callbtns{display:flex;gap:10px;flex-wrap:wrap}
+  .callbtns .btn{flex:1 1 200px}
+  .callform{margin-top:12px}
+  .callsmall{font-size:12.5px;margin-top:6px}
+  .callhint{font-size:13.5px;line-height:1.5;padding:10px 12px;border-radius:12px;margin-bottom:12px;
+    background:color-mix(in srgb,var(--gold) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line))}
+  .filepick{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:12px 14px;overflow-wrap:anywhere}
+  /* .field input qaydası (en 100%, padding) gizli fayl sahəsini daşırmasın deyə daha dəqiq seçici */
+  .field:has(.vh){position:relative}
+  .field input.vh{position:absolute;left:0;top:0;width:1px;height:1px;min-height:0;padding:0;border:0;
+    opacity:0;overflow:hidden;clip-path:inset(50%);pointer-events:none}
+  .field:has(.vh:focus-visible) .filepick{border-color:var(--accent);box-shadow:var(--ring);color:var(--accent)}
+  .ceprev{display:block;max-width:100%;max-height:220px;margin-top:10px;border-radius:12px;border:1px solid var(--line)}
+
+  .mine{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .mine h3{font-size:15px;font-weight:880;margin-bottom:8px}
+  .mine ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .mine li{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+  .mine li > div{flex:1;min-width:0}
+  .mine li b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mine li small{font-size:12px;color:var(--muted)}
+
+  .callentries{margin-top:22px}
+  .callentries .sechead h2 .muted{font-weight:700;font-size:16px;margin-left:4px}
+  .entrygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .entry{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+  .entry.off{opacity:.6}
+  .emedia{display:grid;place-items:center;aspect-ratio:4/3;background:var(--soft);overflow:hidden}
+  .emedia img{width:100%;height:100%;object-fit:cover;display:block}
+  .emedia.none{font-size:42px}
+  .emedia.pdf{gap:4px;font-size:40px;color:var(--muted);align-content:center}
+  .emedia.pdf span{font-size:13px;font-weight:850}
+  .ebody{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px;flex:1}
+  .ebody h3{font-size:15.5px;font-weight:880;line-height:1.3;overflow-wrap:anywhere}
+  .eflags{display:flex;gap:6px;flex-wrap:wrap}
+  .edescr{font-size:13.5px;color:var(--muted);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .emeta{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);margin-top:auto;padding-top:4px}
+  .eadmin{border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;display:flex;flex-direction:column;gap:8px}
+  .econtact{font-size:12.5px;font-weight:700;overflow-wrap:anywhere}
+  .eacts{display:flex;gap:6px;flex-wrap:wrap}
+
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .swatches button{width:34px;height:34px;border-radius:10px;border:2px solid var(--line);cursor:pointer}
+  .swatches button.on{border-color:var(--accent);box-shadow:var(--ring)}
+
+  /* kabinetdə, gözləmə ekranında və girişdə */
+  .callside h3 .ico{color:var(--accent)}
+  .clist{list-style:none;display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}
+  .clist a{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;transition:background .15s}
+  .clist a:hover{background:var(--soft)}
+  .clist .ce{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:20px;flex:none}
+  .clist b{display:block;font-size:14px;line-height:1.3}
+  .clist small{font-size:12px;color:var(--muted)}
+  .callall{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:850;color:var(--accent)}
+  .nextnote{font-size:13.5px;line-height:1.5;font-weight:700;padding:11px 14px;border-radius:12px;margin-bottom:14px;
+    background:var(--accent-soft);color:var(--accent-hover)}
+  .waitcalls{display:flex;align-items:center;gap:10px;margin-top:22px;padding:14px 16px;border-radius:14px;text-align:left;
+    font-size:14px;font-weight:800;background:var(--accent-soft);color:var(--accent-hover)}
+  .waitcalls span{flex:1}
+  .lcalls{padding-top:24px}
+
+  @media(max-width:620px){
+    .chide{display:none}
+    .ctlink span{display:none}
+    .callmain .pubhero{height:130px;font-size:60px}
+    .entrygrid{grid-template-columns:1fr 1fr;gap:10px}
+    .ebody{padding:10px 11px 12px}
+    .ebody h3{font-size:14.5px}
+  }
+  @media(max-width:340px){.entrygrid{grid-template-columns:1fr}}

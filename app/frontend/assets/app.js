@@ -53,11 +53,16 @@ async function render() {
   const pubId = publicProjectId();
   if (pubId) return void (await renderPublic(pubId));
 
+  // --- elanlar (/elan, /elan/{id}) — girişdən və hesabın təsdiqindən asılı deyil ---
+  const callId = callRoute();
+  if (callId !== null) return void (await renderCallRoute(callId));
+
   // --- giriş etməyənlər ---
   if (!S.me) {
     if (first === 'login') return void ($('#app').innerHTML = loginView());
     if (first === 'register') return void ($('#app').innerHTML = registerView(parts[1]));
-    return void ($('#app').innerHTML = landingView());
+    $('#app').innerHTML = landingView();
+    return void loadLandingCalls();
   }
 
   // --- hesab hələ aktiv deyil ---
@@ -98,7 +103,7 @@ function setContent(html) {
 /* Rol üzrə menyu elementləri: [href, i18n açarı, ikon]. */
 function navList() {
   const r = S.me.role;
-  const items = [['#/app', 'nav_overview', 'home'], ['#/projects', 'nav_projects', 'grid']];
+  const items = [['#/app', 'nav_overview', 'home'], ['#/projects', 'nav_projects', 'grid'], ['/elan', 'nav_calls', 'megaphone']];
   if (r === 'author') items.push(['#/new', 'nav_new', 'plus']);
   if (r === 'investor' || r === 'admin') items.push(['#/investors', 'nav_investors', 'trending']);
   if (r === 'maker' || r === 'admin' || r === 'author') items.push(['#/makers', 'nav_makers', 'factory']);
@@ -272,7 +277,7 @@ function landingView() {
     <header class="lnav">
       <a class="brand" href="#/"><span class="m">${logoSvg()}</span>IdeaFlow</a>
       <nav class="llinks" aria-label="${esc(t('nav_menu'))}">
-        ${anchor('how', 'ln_how')}${anchor('roles', 'ln_roles')}${anchor('faq', 'ln_faq')}
+        <a href="/elan">${esc(t('nav_calls'))}</a>${anchor('how', 'ln_how')}${anchor('roles', 'ln_roles')}${anchor('faq', 'ln_faq')}
       </nav>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-sm" onclick="cycleLang()" aria-label="${esc(t('top_lang'))}">${S.lang.toUpperCase()}</button>
@@ -304,6 +309,8 @@ function landingView() {
         </ol>
       </figure>
     </section>
+
+    <section class="lsec lcalls" id="lcalls" hidden></section>
 
     <section class="lsec" id="how">
       <header class="lhd"><h2>${esc(t('lp_howT'))}</h2><p>${esc(t('lp_howS'))}</p></header>
@@ -390,10 +397,26 @@ function authChrome(inner) {
   </div>`;
 }
 
+/* Elandan gəlibsə — hansı elana qayıdacağını göstəririk. */
+function nextNote() {
+  const n = peekNext();
+  if (!n) return '';
+  return `<div class="nextnote">📣 ${esc(n.title ? tf('cl_regFor', { t: n.title }) : t('cl_regForAny'))}</div>`;
+}
+
+/* Girişdən/qeydiyyatdan sonra: elandan gəlibsə ora, yoxsa kabinetə. */
+function afterAuth() {
+  const next = takeNext();
+  if (next) { location.href = next; return; }
+  go('#/app');
+  render();
+}
+
 function loginView() {
   return authChrome(`
     <h2>${esc(t('a_loginTitle'))}</h2>
     <div class="sub">${esc(t('a_loginSub'))}</div>
+    ${nextNote()}
     <div id="formerr"></div>
     <form onsubmit="doLogin(event)">
       <div class="field"><label>${esc(t('a_email'))}</label>
@@ -413,6 +436,7 @@ function registerView(preset) {
   return authChrome(`
     <h2>${esc(t('a_regTitle'))}</h2>
     <div class="sub">${esc(t('a_regSub'))}</div>
+    ${nextNote()}
     <div id="formerr"></div>
     <form onsubmit="doRegister(event)">
       <div class="field"><label>${esc(t('a_role'))}</label>
@@ -461,8 +485,7 @@ async function doLogin(e) {
     await API.login(val('lg_email'), val('lg_pass'));
     S.me = await API.me();
     if (S.me.lang) setLang(S.me.lang, false);
-    go('#/app');
-    render();
+    afterAuth();
   } catch (err) {
     formError(err.key || 'e_network');
   } finally {
@@ -481,8 +504,7 @@ async function doRegister(e) {
       role: regRole, company: val('rg_company'), phone: val('rg_phone'), lang: S.lang,
     });
     S.me = await API.me();
-    go('#/app');
-    render();
+    afterAuth();
   } catch (err) {
     formError(err.key || 'e_network');
   } finally {
@@ -520,6 +542,8 @@ function waitView() {
     <p>${esc(t(text))}</p>
     <p class="muted" style="margin-top:14px;font-size:13px">${esc(S.me.email)} · ${esc(rl(S.me.role))}</p>
     <button class="btn btn-ghost btn-sm" style="margin-top:18px" onclick="recheck()">${esc(t('w_refresh'))}</button>
+    ${S.me.status === 'pending' ? `
+      <a class="waitcalls" href="/elan">${icon('megaphone', 18)}<span>${esc(t('cl_waitT'))}</span>${icon('arrow', 16)}</a>` : ''}
   </div>`;
 }
 
@@ -530,10 +554,11 @@ async function recheck() {
 
 /* =============================== KABİNET =============================== */
 async function dashboardView() {
-  const [dash, projects, notifs] = await Promise.all([
+  const [dash, projects, notifs, calls] = await Promise.all([
     API.get('/dashboard'),
     API.get('/projects' + (S.me.role === 'author' ? '?mine=1' : '')),
     API.get('/notifications').catch(() => []),
+    API.get('/calls').catch(() => []),
   ]);
   const tiles = dash.tiles;
   const r = S.me.role;
@@ -608,6 +633,7 @@ async function dashboardView() {
       ${list.length ? `<div class="journeys">${list.join('')}</div>` : `<div class="empty">${esc(t('c_empty'))}</div>`}
     </div>
     <aside class="dside">
+      ${openCallsCard(calls)}
       <div class="card">
         <h3>${icon('bell', 18)} ${esc(t('d_activity'))}</h3>
         ${notifs.length ? `<ul class="feed">${notifs.slice(0, 6).map((n) => `

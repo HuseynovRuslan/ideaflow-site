@@ -4,7 +4,7 @@
    ========================================================================== */
 
 const ADMIN_TABS = [
-  ['', 'ad_overview'], ['users', 'ad_users'], ['projects', 'ad_projects'],
+  ['', 'ad_overview'], ['users', 'ad_users'], ['projects', 'ad_projects'], ['calls', 'ad_calls'],
   ['audit', 'ad_audit'], ['settings', 'ad_settings'], ['views', 'ad_views'],
 ];
 
@@ -28,7 +28,7 @@ async function renderAdmin(parts, token) {
   try {
     const body = await ({
       '': adminOverview, users: adminUsers, projects: adminProjects,
-      audit: adminAudit, settings: adminSettings, views: adminViews,
+      calls: adminCalls, audit: adminAudit, settings: adminSettings, views: adminViews,
     }[sub] || adminOverview)();
     if (token !== S.renderToken) return;
     const el = document.getElementById('adminbody');

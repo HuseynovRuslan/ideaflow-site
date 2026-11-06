@@ -216,5 +216,39 @@ public static class Db
     );
     create unique index if not exists interests_uniq on interests (project_id, lower(contact));
     create index if not exists interests_project on interests (project_id, id desc);
+
+    -- Elanlar: icma, təşkilat və ya şirkət konkret mövzuda ideya axtarır
+    -- («Novxanı kəndinin şevronları» kimi). Elanı admin yaradır, ideyanı istənilən
+    -- qeydiyyatlı istifadəçi göndərir (CallsApi.cs).
+    create table if not exists calls (
+      id             serial primary key,
+      title          text        not null,
+      organizer      text        not null default '',
+      descr          text        not null default '',
+      emoji          text        not null default '📣',
+      color          text        not null default '#FFEDD5',
+      deadline       date,
+      status         text        not null default 'open' check (status in ('open','closed')),
+      entries_public boolean     not null default true,
+      created_by     int references users(id) on delete set null,
+      created_at     timestamptz not null default now(),
+      updated_at     timestamptz not null default now()
+    );
+
+    -- Elana göndərilən ideyalar. Fayl (eskiz) diskdə yalnız GUID adı ilə saxlanılır.
+    -- Hamıya yalnız gizlədilməmiş və müəllifinin hesabı təsdiqlənmiş ideya görünür.
+    create table if not exists call_entries (
+      id         serial primary key,
+      call_id    int         not null references calls(id) on delete cascade,
+      user_id    int         not null references users(id) on delete cascade,
+      title      text        not null,
+      descr      text        not null default '',
+      file_name  text,
+      file_size  bigint      not null default 0,
+      hidden     boolean     not null default false,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists call_entries_call on call_entries (call_id, id desc);
+    create index if not exists call_entries_user on call_entries (user_id);
     """;
 }

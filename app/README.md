@@ -155,6 +155,27 @@ göstərilir. Server `/p/{id}` üçün OG teqlərini HTML-ə yerləşdirir ki, W
 «honeypot» sahəsi, eyni kontakt təkrar yazanda yeni sətir yaranmır. Kontaktları yalnız
 müəllif və admin görür.
 
+## Elanlar (`/elan`, `/elan/{id}`)
+
+İcma, təşkilat və ya şirkət konkret mövzuda ideya axtarır — məsələn, «Novxanı kəndinin
+şevronları». Elanı yalnız admin yaradır (admin panel → «Elanlar» və ya `/elan` səhifəsi),
+ideyanı istənilən qeydiyyatlı istifadəçi göndərir (`calls`, `call_entries`, `backend/Api/CallsApi.cs`).
+
+- Elan səhifəsi qeydiyyatsız açılır, `/elan/{id}` üçün OG teqləri serverdə qoyulur.
+  Qonaq «İdeyanı göndər»ə basır → qeydiyyat → avtomatik elana qayıdır (`sessionStorage`,
+  yalnız `/elan` yollarına).
+- **Admin təsdiqini gözləmək lazım deyil**: `pending` hesab da göndərir. Belə ideya
+  saxlanılır, amma hamıya yalnız hesab təsdiqlənəndən sonra görünür. Admin ideyanı gizlədə
+  və silə bilər; müəllif öz ideyasını silə bilər.
+- Bir nəfər bir elana ən çox 5 ideya; eskiz — JPG/PNG/WEBP/PDF, 10 MB-a qədər. Faylın
+  tipi uzantı + ilk baytlarla yoxlanılır, `nosniff` və `sandbox` CSP ilə verilir; PDF
+  yalnız yükləmə kimi.
+- İştirakçıların kontaktlarını yalnız admin görür. Elanda «İdeyalar hamıya görünsün»
+  söndürülübsə, ideyaları yalnız admin və müəllifin özü görür.
+- Son tarix Bakı vaxtı ilə həmin günün sonuna qədərdir; bağlı elana göndərmək olmur.
+- «Novxanı kəndinin şevronları» elanı ilk yayımda bir dəfə yaradılır
+  (`settings` → `seed_call:novxani-shevron`); silinsə, yenidən yaranmır.
+
 ## Müqavilə layihəsi
 
 `deal`, `prod`, `sales` mərhələlərində sövdələşmənin tərəfləri (müəllif, admin, qəbul

@@ -43,6 +43,7 @@ await Db.MigrateAsync();
 await EnsureAdminAsync(log);
 await GrantListedAdminsAsync(log);
 await CleanupSessionsAsync();
+await CallsApi.SeedAsync(log);
 
 // ---------------------------------------------------------------- keş qaydaları
 app.Use(async (ctx, next) =>
@@ -105,6 +106,7 @@ Extras.Map(app);
 DashApi.Map(app);
 AdminApi.Map(app);
 PublicApi.Map(app);
+CallsApi.Map(app);
 Contract.Map(app);
 
 app.MapGet("/api/health", () => Results.Json(new { ok = true, at = DateTime.UtcNow }));

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using Npgsql;
 
@@ -69,23 +70,8 @@ public static class PublicApi
             await using var c = await Db.OpenAsync();
             var p = await LoadAsync(c, id);
             if (p is not null)
-            {
-                var title = WebUtility.HtmlEncode((string)p["title"]! + " — IdeaFlow");
-                var descr = (string)p["descr"]!;
-                if (descr.Length > 180) descr = descr[..180].TrimEnd() + "…";
-                descr = WebUtility.HtmlEncode(descr);
-                var url = WebUtility.HtmlEncode($"{ctx.Request.Scheme}://{ctx.Request.Host}/p/{id}");
-                var meta = $"""
-                    <title>{title}</title>
-                    <meta name="description" content="{descr}">
-                    <meta property="og:type" content="product">
-                    <meta property="og:title" content="{title}">
-                    <meta property="og:description" content="{descr}">
-                    <meta property="og:url" content="{url}">
-                    <meta name="twitter:card" content="summary">
-                    """;
-                html = html.Replace("<title>IdeaFlow</title>", meta);
-            }
+                html = PageMeta.Inject(html, (string)p["title"]! + " — IdeaFlow", (string)p["descr"]!,
+                    $"{ctx.Request.Scheme}://{ctx.Request.Host}/p/{id}", "product");
             ctx.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
             return Results.Content(html, "text/html; charset=utf-8");
         });
@@ -149,5 +135,37 @@ public static class PublicApi
             return s.Count(ch => ch == '@') == 1 && s.IndexOf('@') > 0 && s.LastIndexOf('.') > s.IndexOf('@') + 1;
         var digits = s.Count(char.IsDigit);
         return digits >= 7 && s.All(ch => char.IsDigit(ch) || ch is '+' or ' ' or '-' or '(' or ')');
+    }
+}
+
+/// <summary>
+/// Paylaşılan səhifələr (/p/{id}, /elan/{id}) üçün index.html-in başlığını və önizləmə
+/// teqlərini dəyişir. Sosial şəbəkələr (WhatsApp, Telegram, Facebook) JS icra etmir —
+/// linkin altında nə yazılacağını yalnız serverdən gələn HTML müəyyən edir.
+/// </summary>
+public static class PageMeta
+{
+    public static string Inject(string html, string title, string descr, string url, string type)
+    {
+        descr = Regex.Replace(descr, @"\s+", " ").Trim();
+        if (descr.Length > 180) descr = descr[..180].TrimEnd() + "…";
+
+        var t = WebUtility.HtmlEncode(title);
+        // Əvəzləmə mətni MatchEvaluator ilə verilir: istifadəçi mətnindəki «$1» kimi
+        // ifadələr Regex əvəzləmə şablonu kimi açılmasın.
+        html = Regex.Replace(html, "<title>.*?</title>", _ => $"<title>{t}</title>", RegexOptions.Singleline);
+        html = Set(html, "name", "description", descr);
+        html = Set(html, "property", "og:type", type);
+        html = Set(html, "property", "og:title", title);
+        html = Set(html, "property", "og:description", descr);
+        html = Set(html, "property", "og:url", url);
+        return html;
+    }
+
+    private static string Set(string html, string attr, string key, string value)
+    {
+        var tag = $"<meta {attr}=\"{key}\" content=\"{WebUtility.HtmlEncode(value)}\">";
+        var rx = new Regex($"<meta {attr}=\"{Regex.Escape(key)}\" content=\"[^\"]*\">");
+        return rx.IsMatch(html) ? rx.Replace(html, _ => tag, 1) : html.Replace("</head>", tag + "\n</head>");
     }
 }

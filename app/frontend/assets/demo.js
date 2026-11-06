@@ -156,7 +156,18 @@ const Demo = (() => {
       return clone(contract(p));
     }
     if (route.startsWith('/public/')) notFound();
+    // Elanlar açıq məlumatdır: qonaq kimi (cookie-siz) oxunur — adminin kimliyi getmir,
+    // yazma isə yuxarıda onsuz da «demo» xətası ilə bağlanıb.
+    if (route === '/calls' || route.startsWith('/calls/')) return guestGet(path);
     throw new ApiError('e_forbidden', 403); // admin endpoint-ləri və s. — demo istifadəçiyə qapalıdır
+  }
+
+  async function guestGet(path) {
+    let res;
+    try { res = await fetch('/api' + path, { credentials: 'omit' }); } catch (_) { throw new ApiError('e_network', 0); }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError((data && data.error) || 'e_network', res.status);
+    return data;
   }
 
   /* İcmalın yuxarısında göstərilən nümunə (real layihə deyil). */
@@ -196,6 +207,8 @@ function exitDemo() {
   S.realMe = null;
   S.notifs = [];
   try { sessionStorage.removeItem('if_demo'); } catch (_) { /* gizli rejim */ }
+  // Elan səhifəsindən (/elan/…) çıxanda hash kifayət etmir — tətbiqin kökünə qayıdırıq.
+  if (location.pathname !== '/') { location.href = '/#/admin/views'; return; }
   go('#/admin/views');
 }
 
