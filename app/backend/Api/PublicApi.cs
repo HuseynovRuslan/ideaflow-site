@@ -156,8 +156,13 @@ public static class PageMeta
         return $"{scheme}://{ctx.Request.Host}";
     }
 
-    public static string Inject(string html, string title, string descr, string url, string type)
+    public static string Inject(string html, string title, string descr, string url, string type, string? image = null)
     {
+        if (image is not null)
+        {
+            html = Set(html, "property", "og:image", image);
+            html = Set(html, "name", "twitter:card", "summary_large_image");
+        }
         descr = Regex.Replace(descr, @"\s+", " ").Trim();
         if (descr.Length > 180) descr = descr[..180].TrimEnd() + "…";
 

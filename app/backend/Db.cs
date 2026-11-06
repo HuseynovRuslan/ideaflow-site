@@ -250,5 +250,16 @@ public static class Db
     );
     create index if not exists call_entries_call on call_entries (call_id, id desc);
     create index if not exists call_entries_user on call_entries (user_id);
+
+    -- Elanın üz qabığı şəkli (diskdə GUID adı ilə) və şəklin müəllifi/lisenziyası.
+    alter table calls add column if not exists cover        text;
+    alter table calls add column if not exists cover_credit text not null default '';
+
+    -- İdeyanın texniki təsviri: ölçülər (en × hündürlük × qalınlıq) və material.
+    alter table call_entries add column if not exists size_w    numeric(10,2);
+    alter table call_entries add column if not exists size_h    numeric(10,2);
+    alter table call_entries add column if not exists size_d    numeric(10,2);
+    alter table call_entries add column if not exists size_unit text not null default 'cm';
+    alter table call_entries add column if not exists material  text not null default '';
     """;
 }

@@ -167,6 +167,13 @@ ideyanı istənilən qeydiyyatlı istifadəçi göndərir (`calls`, `call_entrie
 - **Admin təsdiqini gözləmək lazım deyil**: `pending` hesab da göndərir. Belə ideya
   saxlanılır, amma hamıya yalnız hesab təsdiqlənəndən sonra görünür. Admin ideyanı gizlədə
   və silə bilər; müəllif öz ideyasını silə bilər.
+- İdeyada istəyə bağlı texniki təsvir: ölçülər (en × hündürlük × qalınlıq; mm/sm/m,
+  «8,5» də qəbul olunur) və material (siyahıdan seçmək və ya sərbəst yazmaq olar).
+- Elanın üz qabığı şəkli (admin yükləyir, JPG/PNG/WEBP) kartda, elan səhifəsində,
+  landing-də və paylaşım önizləməsində (`og:image`) görünür; şəklin müəllifi/lisenziyası
+  ayrıca sahədə saxlanılır və şəklin üstündə göstərilir.
+- Landing-də açıq elan yuxarıda zolaq və hero-nun altında şəkilli böyük blok kimi çıxır.
+  Ana səhifə (`/`) girişdən sonra da landing-dir; kabinet `#/app`-dadır.
 - Bir nəfər bir elana ən çox 5 ideya; eskiz — JPG/PNG/WEBP/PDF, 10 MB-a qədər. Faylın
   tipi uzantı + ilk baytlarla yoxlanılır, `nosniff` və `sandbox` CSP ilə verilir; PDF
   yalnız yükləmə kimi.
@@ -174,7 +181,10 @@ ideyanı istənilən qeydiyyatlı istifadəçi göndərir (`calls`, `call_entrie
   söndürülübsə, ideyaları yalnız admin və müəllifin özü görür.
 - Son tarix Bakı vaxtı ilə həmin günün sonuna qədərdir; bağlı elana göndərmək olmur.
 - «Novxanı kəndinin şevronları» elanı ilk yayımda bir dəfə yaradılır
-  (`settings` → `seed_call:novxani-shevron`); silinsə, yenidən yaranmır.
+  (`settings` → `seed_call:novxani-shevron`); silinsə, yenidən yaranmır. Üz qabığı —
+  `frontend/assets/img/novxani-xezer.jpg`: Novxanı çimərliyi, Xəzər
+  ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Caspian_Sea_Novxani_beach_e-citizen.jpg),
+  Moonsun1981, CC BY-SA 3.0, 1280px-ə kiçildilib); bir dəfə qoyulur (`seed_call_cover:novxani`).
 
 ## Müqavilə layihəsi
 

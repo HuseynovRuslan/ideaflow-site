@@ -46,7 +46,8 @@ public static class CallsApi
             await using var cmd = new NpgsqlCommand($"""
                 select c.id, c.title, c.organizer, c.descr, c.emoji, c.color, c.deadline, c.status,
                        {Accepting}, c.created_at, coalesce(v.ideas, 0), coalesce(v.people, 0),
-                       (select count(*) from call_entries a where a.call_id = c.id)
+                       (select count(*) from call_entries a where a.call_id = c.id),
+                       c.cover, c.cover_credit
                 from calls c
                 left join (select e.call_id, count(*) ideas, count(distinct e.user_id) people
                            from call_entries e join users eu on eu.id = e.user_id
@@ -68,6 +69,8 @@ public static class CallsApi
                     status = r.GetString(7), accepting = r.GetBoolean(8), createdAt = r.GetDateTime(9),
                     ideas = (int)r.GetInt64(10), people = (int)r.GetInt64(11),
                     total = admin ? (int?)r.GetInt64(12) : null,
+                    coverUrl = CoverUrl(r.GetInt32(0), r.IsDBNull(13) ? null : r.GetString(13)),
+                    coverCredit = r.GetString(14),
                 });
             }
             return Results.Json(list);
@@ -88,7 +91,8 @@ public static class CallsApi
             // qalanları — yalnız elan ideyaları açıq göstərirsə və ideya hamıya görünəndirsə.
             await using var cmd = new NpgsqlCommand($"""
                 select e.id, e.title, e.descr, e.file_name, e.hidden, e.created_at, e.user_id,
-                       eu.full_name, eu.status, eu.email, eu.phone, {VisibleEntry}
+                       eu.full_name, eu.status, eu.email, eu.phone, {VisibleEntry},
+                       e.size_w, e.size_h, e.size_d, e.size_unit, e.material
                 from call_entries e join users eu on eu.id = e.user_id
                 where e.call_id = @id
                   and (@admin or e.user_id = @me or (@pub and {VisibleEntry}))
@@ -110,10 +114,14 @@ public static class CallsApi
                     var own = u is not null && r.GetInt32(6) == u.Id;
                     if (own) mine++;
                     var file = r.IsDBNull(3) ? null : r.GetString(3);
+                    decimal? Dim(int i) => r.IsDBNull(i) ? null : r.GetDecimal(i);
+                    var (w, h, d) = (Dim(12), Dim(13), Dim(14));
                     entries.Add(new
                     {
                         id = eid, title = r.GetString(1), descr = r.GetString(2),
                         createdAt = r.GetDateTime(5), authorName = r.GetString(7),
+                        size = w is null && h is null && d is null ? null : new { w, h, d, unit = r.GetString(15) },
+                        material = r.GetString(16),
                         file = file is null ? null : new
                         {
                             kind = file.EndsWith(".pdf", StringComparison.Ordinal) ? "pdf" : "image",
@@ -157,9 +165,10 @@ public static class CallsApi
 
             await using var c = await Db.OpenAsync();
             await using var cmd = new NpgsqlCommand("""
-                insert into calls (title, organizer, descr, emoji, color, deadline, status, entries_public, created_by)
-                values (@t, @o, @d, @em, @co, @dl, @st, @pub, @by) returning id
+                insert into calls (title, organizer, descr, emoji, color, deadline, status, entries_public, created_by, cover_credit)
+                values (@t, @o, @d, @em, @co, @dl, @st, @pub, @by, @cc) returning id
                 """, c);
+            cmd.Parameters.AddWithValue("cc", f.CoverCredit ?? "");
             cmd.Parameters.AddWithValue("t", f.Title!);
             cmd.Parameters.AddWithValue("o", f.Organizer ?? "");
             cmd.Parameters.AddWithValue("d", f.Descr ?? "");
@@ -197,9 +206,11 @@ public static class CallsApi
                   deadline       = case when @dlset then @dl else deadline end,
                   status         = coalesce(@st, status),
                   entries_public = coalesce(@pub, entries_public),
+                  cover_credit   = coalesce(@cc, cover_credit),
                   updated_at     = now()
                 where id = @id
                 """, c);
+            cmd.Parameters.Add(Text("cc", f.CoverCredit));
             cmd.Parameters.Add(Text("t", f.Title));
             cmd.Parameters.Add(Text("o", f.Organizer));
             cmd.Parameters.Add(Text("d", f.Descr));
@@ -226,8 +237,11 @@ public static class CallsApi
 
             await using var c = await Db.OpenAsync();
             var files = new List<string>();
-            await using (var get = new NpgsqlCommand(
-                "select file_name from call_entries where call_id = @id and file_name is not null", c))
+            await using (var get = new NpgsqlCommand("""
+                select file_name from call_entries where call_id = @id and file_name is not null
+                union all
+                select cover from calls where id = @id and cover is not null
+                """, c))
             {
                 get.Parameters.AddWithValue("id", id);
                 await using var r = await get.ExecuteReaderAsync();
@@ -256,6 +270,14 @@ public static class CallsApi
             var title = Clip(form["title"].ToString(), 120);
             var descr = Clip(form["descr"].ToString(), 3000);
             if (title.Length < 3) return Api.Err(400, "e_title");
+
+            // Texniki təsvir — hamısı istəyə bağlıdır. Ölçü «8,5» və «8.5» kimi qəbul olunur.
+            var material = Clip(form["material"].ToString(), 300);
+            var unit = form["unit"].ToString() is "mm" or "cm" or "m" ? form["unit"].ToString() : "cm";
+            var (okW, sw) = Dimension(form["w"].ToString());
+            var (okH, sh) = Dimension(form["h"].ToString());
+            var (okD, sd) = Dimension(form["d"].ToString());
+            if (!okW || !okH || !okD) return Api.Err(400, "e_entrySize");
 
             var file = form.Files.GetFile("file");
             string? ext = null;
@@ -293,9 +315,15 @@ public static class CallsApi
             }
 
             await using var ins = new NpgsqlCommand("""
-                insert into call_entries (call_id, user_id, title, descr, file_name, file_size)
-                values (@c, @u, @t, @d, @f, @z) returning id
+                insert into call_entries (call_id, user_id, title, descr, file_name, file_size,
+                                          size_w, size_h, size_d, size_unit, material)
+                values (@c, @u, @t, @d, @f, @z, @sw, @sh, @sd, @un, @mat) returning id
                 """, c);
+            ins.Parameters.Add(Num("sw", sw));
+            ins.Parameters.Add(Num("sh", sh));
+            ins.Parameters.Add(Num("sd", sd));
+            ins.Parameters.AddWithValue("un", unit);
+            ins.Parameters.AddWithValue("mat", material);
             ins.Parameters.AddWithValue("c", id);
             ins.Parameters.AddWithValue("u", u.Id);
             ins.Parameters.AddWithValue("t", title);
@@ -393,6 +421,61 @@ public static class CallsApi
                 : Results.File(path, FileTypes[ext]);
         });
 
+        // ------------------------------------------------- admin: üz qabığı
+        g.MapPost("/{id:int}/cover", async (HttpContext ctx, int id) =>
+        {
+            var (u, fail) = Api.RequireActive(ctx, "admin");
+            if (fail is not null) return fail;
+            if (!ctx.Request.HasFormContentType) return Api.Err(400, "e_form");
+
+            var file = (await ctx.Request.ReadFormAsync()).Files.GetFile("file");
+            if (file is not { Length: > 0 }) return Api.Err(400, "e_noFile");
+            if (file.Length > MaxFileSize) return Api.Err(413, "e_entryBigFile");
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (ext == ".pdf" || !FileTypes.ContainsKey(ext) || !await SignatureOkAsync(file, ext))
+                return Api.Err(415, "e_coverType");
+
+            await using var c = await Db.OpenAsync();
+            var old = await CoverNameAsync(c, id);
+            if (old is null) return Api.Err(404, "e_notFound");
+
+            var stored = await SaveAsync(file.CopyToAsync, ext);
+            await SetCoverAsync(c, id, stored);
+            if (old.Length > 0) DeleteFile(old);
+
+            await Audit.LogAsync(c, u!.Id, "call_cover", "call", id, null, ctx);
+            return Results.Json(new { ok = true, coverUrl = CoverUrl(id, stored) });
+        });
+
+        g.MapDelete("/{id:int}/cover", async (HttpContext ctx, int id) =>
+        {
+            var (u, fail) = Api.RequireActive(ctx, "admin");
+            if (fail is not null) return fail;
+
+            await using var c = await Db.OpenAsync();
+            var old = await CoverNameAsync(c, id);
+            if (old is null) return Api.Err(404, "e_notFound");
+            await SetCoverAsync(c, id, null);
+            if (old.Length > 0) DeleteFile(old);
+
+            await Audit.LogAsync(c, u!.Id, "call_cover_delete", "call", id, null, ctx);
+            return Results.Json(new { ok = true });
+        });
+
+        // Üz qabığı elanın özü kimi açıqdır. URL-də ?v= var — uzun keş təhlükəsizdir.
+        g.MapGet("/{id:int}/cover", async (HttpContext ctx, int id) =>
+        {
+            await using var c = await Db.OpenAsync();
+            var stored = await CoverNameAsync(c, id);
+            if (string.IsNullOrEmpty(stored)) return Api.Err(404, "e_notFound");
+            var path = Path.Combine(Extras.UploadDir, stored);
+            if (!File.Exists(path)) return Api.Err(404, "e_fileGone");
+
+            ctx.Response.Headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
+            ctx.Response.Headers["Cache-Control"] = "public, max-age=604800";
+            return Results.File(path, FileTypes[Path.GetExtension(stored)]);
+        });
+
         // ------------------------------------------------------ paylaşılan link
         // /elan/{id} eyni SPA-dır; sosial şəbəkə önizləməsi JS icra etmədiyi üçün
         // elanın adı və təsviri serverdə OG teqləri kimi yerləşdirilir.
@@ -403,8 +486,11 @@ public static class CallsApi
             var call = await LoadAsync(c, id);
             if (call is not null)
             {
-                var url = $"{PageMeta.Origin(ctx)}/elan/{id}";
-                html = PageMeta.Inject(html, $"📣 {call["title"]} — IdeaFlow", (string)call["descr"]!, url, "website");
+                var origin = PageMeta.Origin(ctx);
+                // Üz qabığı varsa WhatsApp/Facebook önizləməsində böyük şəkil kimi çıxır.
+                var image = call["coverUrl"] is string cover ? origin + cover : null;
+                html = PageMeta.Inject(html, $"📣 {call["title"]} — IdeaFlow", (string)call["descr"]!,
+                    $"{origin}/elan/{id}", "website", image);
             }
             ctx.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
             return Results.Content(html, "text/html; charset=utf-8");
@@ -422,7 +508,8 @@ public static class CallsApi
                    (select count(*) from call_entries e join users eu on eu.id = e.user_id
                     where e.call_id = c.id and {VisibleEntry}),
                    (select count(distinct e.user_id) from call_entries e join users eu on eu.id = e.user_id
-                    where e.call_id = c.id and {VisibleEntry})
+                    where e.call_id = c.id and {VisibleEntry}),
+                   c.cover, c.cover_credit
             from calls c where c.id = @id
             """, c);
         cmd.Parameters.AddWithValue("id", id);
@@ -443,6 +530,8 @@ public static class CallsApi
             ["createdAt"] = r.GetDateTime(10),
             ["ideas"] = (int)r.GetInt64(11),
             ["people"] = (int)r.GetInt64(12),
+            ["coverUrl"] = CoverUrl(r.GetInt32(0), r.IsDBNull(13) ? null : r.GetString(13)),
+            ["coverCredit"] = r.GetString(14),
         };
     }
 
@@ -452,7 +541,7 @@ public static class CallsApi
 
     private sealed record Fields(
         string? Title, string? Organizer, string? Descr, string? Emoji, string? Color,
-        bool DeadlineSet, DateOnly? Deadline, string? Status, bool? EntriesPublic, string? Error);
+        bool DeadlineSet, DateOnly? Deadline, string? Status, bool? EntriesPublic, string? CoverCredit, string? Error);
 
     /// <summary>Elan sahələri. null — «göndərilməyib, dəyişmə» (redaktədə).</summary>
     private static Fields ReadFields(JsonElement b, bool creating)
@@ -485,9 +574,9 @@ public static class CallsApi
             ? pv.GetBoolean() : null;
 
         return new Fields(title, S("organizer", 120), S("descr", 8000), emoji, color,
-            deadlineSet, deadline, status, pub, null);
+            deadlineSet, deadline, status, pub, S("coverCredit", 200), null);
 
-        static Fields Err(string key) => new(null, null, null, null, null, false, null, null, null, key);
+        static Fields Err(string key) => new(null, null, null, null, null, false, null, null, null, null, key);
     }
 
     private static string Clip(string s, int max)
@@ -498,6 +587,24 @@ public static class CallsApi
 
     private static NpgsqlParameter Text(string name, string? value) =>
         new(name, NpgsqlTypes.NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };
+
+    private static NpgsqlParameter Num(string name, decimal? value) =>
+        new(name, NpgsqlTypes.NpgsqlDbType.Numeric) { Value = value is { } v ? v : DBNull.Value };
+
+    /// <summary>Boş — ölçü verilməyib (ok). Rəqəm deyilsə və ya 0 &lt; x ≤ 100 000 deyilsə — xəta.</summary>
+    private static (bool Ok, decimal? Value) Dimension(string raw)
+    {
+        raw = raw.Trim().Replace(',', '.');
+        if (raw.Length == 0) return (true, null);
+        if (!decimal.TryParse(raw, System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.InvariantCulture, out var v) || v <= 0 || v > 100_000)
+            return (false, null);
+        return (true, Math.Round(v, 2));
+    }
+
+    /// <summary>Üz qabığının URL-i; ?v= fayl adından — şəkil dəyişəndə keş özü yenilənir.</summary>
+    private static string? CoverUrl(int id, string? stored) =>
+        stored is null ? null : $"/api/calls/{id}/cover?v={Path.GetFileNameWithoutExtension(stored)[^8..]}";
 
     /// <summary>Faylın ilk baytları uzantısına uyğundurmu (adı .png olan HTML qəbul edilməsin).</summary>
     private static async Task<bool> SignatureOkAsync(IFormFile file, string ext)
@@ -516,6 +623,32 @@ public static class CallsApi
         };
     }
 
+    /// <summary>null — elan yoxdur; "" — elan var, üz qabığı yoxdur.</summary>
+    private static async Task<string?> CoverNameAsync(NpgsqlConnection c, int id)
+    {
+        await using var cmd = new NpgsqlCommand("select coalesce(cover, '') from calls where id = @id", c);
+        cmd.Parameters.AddWithValue("id", id);
+        return (string?)await cmd.ExecuteScalarAsync();
+    }
+
+    private static async Task SetCoverAsync(NpgsqlConnection c, int id, string? stored, NpgsqlTransaction? tx = null)
+    {
+        await using var cmd = new NpgsqlCommand("update calls set cover = @f, updated_at = now() where id = @id", c, tx);
+        cmd.Parameters.Add(Text("f", stored));
+        cmd.Parameters.AddWithValue("id", id);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>Faylı yükləmə qovluğuna GUID adı ilə yazır və həmin adı qaytarır.</summary>
+    private static async Task<string> SaveAsync(Func<Stream, CancellationToken, Task> copy, string ext)
+    {
+        Directory.CreateDirectory(Extras.UploadDir);
+        var stored = "cover-" + Guid.NewGuid().ToString("n") + ext;
+        await using var fs = File.Create(Path.Combine(Extras.UploadDir, stored));
+        await copy(fs, CancellationToken.None);
+        return stored;
+    }
+
     private static void DeleteFile(string stored)
     {
         try
@@ -531,15 +664,24 @@ public static class CallsApi
     /// «Novxanı kəndinin şevronları» elanı yayımda BİR DƏFƏ yaradılır və bu, settings-də
     /// qeyd olunur. Admin sonra onu redaktə edə və ya silə bilər — silinsə, yenidən yaranmır.
     /// </summary>
-    public static async Task SeedAsync(ILogger log)
+    public static async Task SeedAsync(ILogger log, string webRoot)
+    {
+        await using var c = await Db.OpenAsync();
+        await SeedCallAsync(c, log);
+        await SeedCoverAsync(c, log, webRoot);
+    }
+
+    private static async Task<string?> SettingAsync(NpgsqlConnection c, string key)
+    {
+        await using var cmd = new NpgsqlCommand("select value from settings where key = @k", c);
+        cmd.Parameters.AddWithValue("k", key);
+        return (string?)await cmd.ExecuteScalarAsync();
+    }
+
+    private static async Task SeedCallAsync(NpgsqlConnection c, ILogger log)
     {
         const string key = "seed_call:novxani-shevron";
-        await using var c = await Db.OpenAsync();
-        await using (var done = new NpgsqlCommand("select 1 from settings where key = @k", c))
-        {
-            done.Parameters.AddWithValue("k", key);
-            if (await done.ExecuteScalarAsync() is not null) return;
-        }
+        if (await SettingAsync(c, key) is not null) return;
 
         await using var tx = await c.BeginTransactionAsync();
         int id;
@@ -560,6 +702,51 @@ public static class CallsApi
         }
         await tx.CommitAsync();
         log.LogInformation("İlk elan yaradıldı: Novxanı kəndinin şevronları (#{Id})", id);
+    }
+
+    /// <summary>
+    /// Novxanı elanına üz qabığı — Xəzər sahili, Novxanı çimərliyi (Wikimedia Commons,
+    /// «Caspian Sea Novxani beach e-citizen.jpg», Moonsun1981, CC BY-SA 3.0). Şəkil
+    /// frontend/assets/img-də gəlir və BİR DƏFƏ yükləmə qovluğuna köçürülür. Admin artıq
+    /// öz şəklini qoyubsa və ya elan silinibsə, toxunulmur.
+    /// </summary>
+    private static async Task SeedCoverAsync(NpgsqlConnection c, ILogger log, string webRoot)
+    {
+        const string key = "seed_call_cover:novxani";
+        if (await SettingAsync(c, key) is not null) return;
+        if (!int.TryParse(await SettingAsync(c, "seed_call:novxani-shevron"), out var id)) return;
+
+        var src = Path.Combine(webRoot, "assets", "img", "novxani-xezer.jpg");
+        if (!File.Exists(src)) { log.LogWarning("Novxanı üz qabığı tapılmadı: {Path}", src); return; }
+
+        string? stored = null;
+        if (await CoverNameAsync(c, id) == "")
+        {
+            stored = await SaveAsync(async (dst, ct) =>
+            {
+                await using var input = File.OpenRead(src);
+                await input.CopyToAsync(dst, ct);
+            }, ".jpg");
+        }
+
+        await using var tx = await c.BeginTransactionAsync();
+        if (stored is not null)
+        {
+            await SetCoverAsync(c, id, stored, tx);
+            await using var credit = new NpgsqlCommand(
+                "update calls set cover_credit = @cc where id = @id and cover_credit = ''", c, tx);
+            credit.Parameters.AddWithValue("cc", "Foto: Moonsun1981 · CC BY-SA 3.0 · Wikimedia Commons");
+            credit.Parameters.AddWithValue("id", id);
+            await credit.ExecuteNonQueryAsync();
+        }
+        await using (var mark = new NpgsqlCommand("insert into settings (key, value) values (@k, @v)", c, tx))
+        {
+            mark.Parameters.AddWithValue("k", key);
+            mark.Parameters.AddWithValue("v", stored ?? "skip");
+            await mark.ExecuteNonQueryAsync();
+        }
+        await tx.CommitAsync();
+        if (stored is not null) log.LogInformation("Novxanı elanına üz qabığı qoyuldu (#{Id})", id);
     }
 
     private const string NovxaniText = """

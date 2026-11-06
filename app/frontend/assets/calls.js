@@ -110,9 +110,17 @@ function callsListHtml(list) {
   ${list.length ? `<div class="callgrid">${list.map(callCard).join('')}</div>` : `<div class="empty">${esc(t('cl_empty'))}</div>`}`;
 }
 
+/* Üz qabığı: şəkil varsa şəkil (müəllif qeydi ilə), yoxsa rəngli fonda emoji. */
+function coverHtml(c, cls, lazy = true) {
+  return `<div class="${cls} ${c.coverUrl ? 'hasimg' : ''}" style="background:${safeColor(c.color)}">
+    ${c.coverUrl ? `<img src="${esc(c.coverUrl)}" alt="${esc(c.title)}" ${lazy ? 'loading="lazy"' : ''}>` : esc(c.emoji)}
+    ${c.coverUrl && c.coverCredit ? `<small class="credit">${esc(c.coverCredit)}</small>` : ''}
+  </div>`;
+}
+
 function callCard(c) {
   return `<a class="callcard ${c.accepting ? '' : 'closed'}" href="/elan/${c.id}">
-    <div class="cc-cover" style="background:${safeColor(c.color)}">${esc(c.emoji)}</div>
+    ${coverHtml(c, 'cc-cover')}
     <div class="cc-body">
       <div class="callchips">${callBadge(c)}${deadlineChip(c)}</div>
       <h3>${esc(c.title)}</h3>
@@ -143,7 +151,7 @@ function callPageHtml(c) {
   return `
   <a class="back" href="/elan">← ${esc(t('cl_all'))}</a>
   <article class="pubcard callmain">
-    <div class="pubhero" style="background:${safeColor(c.color)}">${esc(c.emoji)}</div>
+    ${coverHtml(c, 'pubhero', false)}
     <div class="pubbody">
       <div class="callchips">${callBadge(c)}${deadlineChip(c)}</div>
       <h1>${esc(c.title)}</h1>
@@ -215,6 +223,20 @@ function entryForm(c) {
         <input id="ce_title" maxlength="120" minlength="3" required placeholder="${esc(t('cl_fNamePh'))}"></div>
       <div class="field"><label for="ce_descr">${esc(t('cl_fDesc'))}</label>
         <textarea id="ce_descr" rows="4" maxlength="3000" placeholder="${esc(t('cl_fDescPh'))}"></textarea></div>
+      <fieldset class="specs">
+        <legend>📐 ${esc(t('cl_fSize'))}</legend>
+        <div class="specgrid">
+          ${[['w', 'cl_fW', '9'], ['h', 'cl_fH', '7'], ['d', 'cl_fD', '0,3']].map(([k, label, ph]) => `
+            <div class="field"><label for="ce_${k}">${esc(t(label))}</label>
+              <input id="ce_${k}" inputmode="decimal" maxlength="9" placeholder="${ph}" pattern="[0-9]+([.,][0-9]{1,2})?"></div>`).join('')}
+          <div class="field"><label for="ce_unit">${esc(t('cl_fUnit'))}</label>
+            <select id="ce_unit">${['mm', 'cm', 'm'].map((u) => `<option value="${u}" ${u === 'cm' ? 'selected' : ''}>${esc(unitL(u))}</option>`).join('')}</select></div>
+        </div>
+      </fieldset>
+      <div class="field"><label for="ce_mat">🧵 ${esc(t('cl_fMat'))}</label>
+        <input id="ce_mat" list="ce_mats" maxlength="300" placeholder="${esc(t('cl_fMatPh'))}">
+        <datalist id="ce_mats">${t('cl_matList').split('|').map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
+        <div class="muted callsmall">${esc(t('cl_fMatHint'))}</div></div>
       <div class="field"><label for="ce_file">${esc(t('cl_fFile'))}</label>
         <label class="dropzone filepick" for="ce_file" id="ce_drop">
           ${icon('clip', 18)} <span id="ce_fname">${esc(t('cl_fFilePick'))}</span>
@@ -259,6 +281,9 @@ async function sendEntry(e, id) {
   const fd = new FormData();
   fd.append('title', val('ce_title'));
   fd.append('descr', val('ce_descr'));
+  ['w', 'h', 'd'].forEach((k) => fd.append(k, val('ce_' + k)));
+  fd.append('unit', val('ce_unit'));
+  fd.append('material', val('ce_mat'));
   const f = $('#ce_file') && $('#ce_file').files[0];
   if (f) fd.append('file', f);
   try {
@@ -312,10 +337,31 @@ function entryCard(e, c) {
       ${flags ? `<div class="eflags">${flags}</div>` : ''}
       <h3>${esc(e.title)}</h3>
       ${e.descr ? `<p class="edescr">${esc(e.descr)}</p>` : ''}
+      ${specLine(e)}
       <div class="emeta">${icon('user', 14)} ${esc(e.authorName)} · ${fdate(e.createdAt)}</div>
       ${admin}
     </div>
   </article>`;
+}
+
+/* Ölçü vahidi və rəqəm dilə uyğun: «sm» / «см» / «cm», «0,3» / «0.3». */
+function unitL(u) { return t('cl_unit_' + u); }
+function dimL(v) { const s = String(Number(v)); return S.lang === 'en' ? s : s.replace('.', ','); }
+
+/* «📐 9 × 7 × 0,3 sm · 🧵 Tikmə» — en və hündürlük varsa adi yazılış, yoxsa adları ilə. */
+function specLine(e) {
+  const parts = [];
+  const s = e.size;
+  if (s) {
+    const has = (v) => v !== null && v !== undefined;
+    const txt = has(s.w) && has(s.h)
+      ? [s.w, s.h, s.d].filter(has).map(dimL).join(' × ')
+      : [['cl_fW', s.w], ['cl_fH', s.h], ['cl_fD', s.d]].filter(([, v]) => has(v))
+        .map(([k, v]) => `${t(k).toLowerCase()} ${dimL(v)}`).join(', ');
+    parts.push(`<span title="${esc(t('cl_fSize'))}">📐 ${esc(txt)} ${esc(unitL(s.unit))}</span>`);
+  }
+  if (e.material) parts.push(`<span title="${esc(t('cl_fMat'))}">🧵 ${esc(e.material)}</span>`);
+  return parts.length ? `<div class="especs">${parts.join('')}</div>` : '';
 }
 
 /* ---------------------------------------------------------- əməliyyatlar */
@@ -344,7 +390,8 @@ function deleteEntry(eid) {
 
 /* =========================== ADMIN: ELAN FORMASI =========================== */
 async function editCall(id) {
-  let c = { title: '', organizer: '', descr: '', emoji: '📣', color: CALL_COLORS[0], deadline: null, status: 'open', entriesPublic: true };
+  let c = { title: '', organizer: '', descr: '', emoji: '📣', color: CALL_COLORS[0], deadline: null, status: 'open',
+    entriesPublic: true, coverUrl: null, coverCredit: '' };
   try {
     if (id) c = S.call && S.call.id === id ? S.call : await API.get('/calls/' + id);
   } catch (err) { toastErr(err); return; }
@@ -364,6 +411,20 @@ async function editCall(id) {
       <div class="swatches" id="cf_colors">${CALL_COLORS.map((col) => `
         <button type="button" class="${col === safeColor(c.color) ? 'on' : ''}" style="background:${col}" data-c="${col}"
                 onclick="pickSwatch(this)" aria-label="${col}"></button>`).join('')}</div></div>
+    <div class="field"><label for="cf_cover">${esc(t('cl_fCover'))}</label>
+      <div class="coverpick">
+        <div class="cp-prev" id="cf_cprev" style="background:${safeColor(c.color)}">
+          ${c.coverUrl ? `<img src="${esc(c.coverUrl)}" alt="">` : esc(c.emoji)}</div>
+        <div class="cp-acts">
+          <label class="btn btn-ghost btn-sm" for="cf_cover">${icon('clip', 16)} ${esc(t('cl_fCoverPick'))}</label>
+          <input id="cf_cover" type="file" class="vh" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                 onchange="pickCover(this)">
+          ${c.coverUrl ? `<label class="checkrow"><input type="checkbox" id="cf_cdel"> ${esc(t('cl_fCoverDel'))}</label>` : ''}
+          <div class="muted callsmall">${esc(t('cl_fCoverHint'))}</div>
+        </div>
+      </div></div>
+    <div class="field"><label for="cf_credit">${esc(t('cl_fCredit'))}</label>
+      <input id="cf_credit" maxlength="200" value="${esc(c.coverCredit || '')}" placeholder="${esc(t('cl_fCreditPh'))}"></div>
     <div class="field"><label for="cf_descr">${esc(t('cl_fDescr'))}</label>
       <textarea id="cf_descr" rows="9" maxlength="8000">${esc(c.descr)}</textarea></div>
     <div class="field"><label for="cf_status">${esc(t('cl_fStatus'))}</label>
@@ -382,10 +443,21 @@ async function editCall(id) {
       title: val('cf_title'), organizer: val('cf_org'), descr: $('#cf_descr').value.trim(),
       emoji: val('cf_emoji'), color: on ? on.dataset.c : CALL_COLORS[0],
       deadline: val('cf_deadline'), status: val('cf_status'), entriesPublic: $('#cf_public').checked,
+      coverCredit: val('cf_credit'),
     };
+    const cover = $('#cf_cover').files[0];
+    const dropCover = $('#cf_cdel') && $('#cf_cdel').checked;
     let newId = id;
     if (id) await API.patch('/calls/' + id, body);
     else newId = (await API.post('/calls', body)).id;
+    // Şəkil ayrıca göndərilir: mətn sahələri JSON-dur, fayl isə multipart.
+    if (cover) {
+      const fd = new FormData();
+      fd.append('file', cover);
+      await API.upload(`/calls/${newId}/cover`, fd);
+    } else if (dropCover) {
+      await API.del(`/calls/${newId}/cover`);
+    }
     toast(t('cl_saved'));
     closeModal();
     afterCallChange(newId);
@@ -395,6 +467,18 @@ async function editCall(id) {
 
 function pickSwatch(btn) {
   $$('#cf_colors button').forEach((b) => b.classList.toggle('on', b === btn));
+  const prev = $('#cf_cprev');
+  if (prev) prev.style.background = btn.dataset.c;
+}
+
+function pickCover(input) {
+  const f = input.files && input.files[0];
+  const prev = $('#cf_cprev');
+  if (!f || !prev) return;
+  if (f.size > MAX_ENTRY_FILE) { toast(t('e_entryBigFile'), false); input.value = ''; return; }
+  prev.innerHTML = `<img src="${URL.createObjectURL(f)}" alt="">`;
+  const del = $('#cf_cdel');
+  if (del) del.checked = false;
 }
 
 /* Əməliyyatdan sonra harada idiksə ora qayıdırıq: elan səhifəsi, siyahı və ya admin panel. */
@@ -437,25 +521,62 @@ function openCallsCard(calls) {
     <h3>${icon('megaphone', 18)} ${esc(t('cl_dashT'))}</h3>
     <ul class="clist">${open.map((c) => `
       <li><a href="/elan/${c.id}">
-        <span class="ce" style="background:${safeColor(c.color)}">${esc(c.emoji)}</span>
+        <span class="ce" style="background:${safeColor(c.color)}">${c.coverUrl
+          ? `<img src="${esc(c.coverUrl)}" alt="" loading="lazy">` : esc(c.emoji)}</span>
         <span><b>${esc(c.title)}</b><small>💡 ${num(c.ideas)} ${esc(t('cl_ideasShort'))}</small></span>
       </a></li>`).join('')}</ul>
     <a class="callall" href="/elan">${esc(t('cl_all'))} ${icon('arrow', 16)}</a>
   </div>`;
 }
 
-/* Landing-də açıq elanlar bölməsi — səhifə çəkiləndən sonra doldurulur. */
+/* Landing-də açıq elanlar — səhifə çəkiləndən sonra doldurulur: yuxarıda zolaq
+   (ilk ekranda görünsün) və hero-nun altında şəkilli böyük blok. */
 async function loadLandingCalls() {
   const el = document.getElementById('lcalls');
+  const rib = document.getElementById('lribbon');
   if (!el) return;
   try {
-    const open = (await API.get('/calls')).filter((c) => c.accepting).slice(0, 3);
+    const open = (await API.get('/calls')).filter((c) => c.accepting);
     if (!open.length || !document.body.contains(el)) return;
+    const [main, ...rest] = open;
+    if (rib) {
+      rib.innerHTML = `<a href="/elan/${main.id}">
+        <span class="rb-tag">📣 ${esc(t('cl_ribbon'))}</span>
+        <b>${esc(main.title)}</b>
+        <span class="rb-go">${esc(t('cl_cta'))} ${icon('arrow', 16)}</span></a>`;
+      rib.hidden = false;
+    }
     el.innerHTML = `
-      <header class="lhd"><h2>📣 ${esc(t('cl_landT'))}</h2><p>${esc(t('cl_landS'))}</p></header>
-      <div class="callgrid">${open.map(callCard).join('')}</div>`;
+      <header class="lhd"><span class="lkick">📣 ${esc(t('cl_landKick'))}</span>
+        <h2>${esc(t('cl_landT'))}</h2><p>${esc(t('cl_landS'))}</p></header>
+      ${featuredCall(main)}
+      ${rest.length ? `<div class="callgrid lcmore">${rest.slice(0, 3).map(callCard).join('')}</div>` : ''}`;
     el.hidden = false;
   } catch (_) { /* elanlar landing üçün vacib deyil — səssiz buraxılır */ }
+}
+
+function featuredCall(c) {
+  const first = String(c.excerpt || '').split(/\n\s*\n/)[0];
+  return `<article class="lfeat">
+    <a class="lf-media" href="/elan/${c.id}" style="background:${safeColor(c.color)}" aria-label="${esc(c.title)}">
+      ${c.coverUrl ? `<img src="${esc(c.coverUrl)}" alt="" loading="lazy">` : `<span class="lf-emoji">${esc(c.emoji)}</span>`}
+      <span class="lf-live">● ${esc(t('cl_open'))}</span>
+      <span class="lf-badge" aria-hidden="true">${esc(c.emoji)}</span>
+      ${c.coverUrl && c.coverCredit ? `<small class="credit">${esc(c.coverCredit)}</small>` : ''}
+    </a>
+    <div class="lf-body">
+      <div class="callchips">${deadlineChip(c)}${c.organizer ? `<span class="chip">${esc(c.organizer)}</span>` : ''}</div>
+      <h3><a href="/elan/${c.id}">${esc(c.title)}</a></h3>
+      <p class="lf-ex">${esc(first)}</p>
+      <ol class="lf-steps">
+        ${['cl_step1', 'cl_step2', 'cl_step3'].map((k, i) => `<li><b>${i + 1}</b><span>${esc(t(k))}</span></li>`).join('')}
+      </ol>
+      <div class="lf-foot">
+        <a class="btn btn-primary btn-lg" href="/elan/${c.id}">${icon('sparkles', 18)} ${esc(t('cl_cta'))}</a>
+        <span class="lf-stat"><b>${num(c.ideas)}</b> ${esc(t('cl_ideas'))}</span>
+      </div>
+    </div>
+  </article>`;
 }
 
 async function adminCalls() {

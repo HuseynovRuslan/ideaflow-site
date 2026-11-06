@@ -43,7 +43,7 @@ await Db.MigrateAsync();
 await EnsureAdminAsync(log);
 await GrantListedAdminsAsync(log);
 await CleanupSessionsAsync();
-await CallsApi.SeedAsync(log);
+await CallsApi.SeedAsync(log, app.Environment.WebRootPath);
 
 // ---------------------------------------------------------------- keş qaydaları
 app.Use(async (ctx, next) =>

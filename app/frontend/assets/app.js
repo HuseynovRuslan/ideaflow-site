@@ -57,12 +57,16 @@ async function render() {
   const callId = callRoute();
   if (callId !== null) return void (await renderCallRoute(callId));
 
+  // --- ana səhifə hamı üçün landing-dir; kabinet #/app-dadır (girişdən sonra ora gedilir) ---
+  if (first === '' || (!S.me && first !== 'login' && first !== 'register')) {
+    $('#app').innerHTML = landingView();
+    return void loadLandingCalls();
+  }
+
   // --- giriş etməyənlər ---
   if (!S.me) {
     if (first === 'login') return void ($('#app').innerHTML = loginView());
-    if (first === 'register') return void ($('#app').innerHTML = registerView(parts[1]));
-    $('#app').innerHTML = landingView();
-    return void loadLandingCalls();
+    return void ($('#app').innerHTML = registerView(parts[1]));
   }
 
   // --- hesab hələ aktiv deyil ---
@@ -271,9 +275,15 @@ function landingView() {
   const ex = Demo.example();
   const anchor = (id, k, cls = '') =>
     `<a ${cls ? `class="${cls}"` : ''} href="#${id}" onclick="event.preventDefault();lpScroll('${id}')">${esc(t(k))}</a>`;
+  // Ana səhifə girişdən sonra da landing olaraq qalır — daxil olmuş istifadəçiyə
+  // qeydiyyat əvəzinə kabinetə keçid təklif olunur.
+  const me = !!S.me;
+  const join = (r = '') => (me ? '#/app' : '#/register' + (r ? '/' + r : ''));
+  const joinL = esc(t(me ? 'lp_toCabinet' : 'a_register'));
 
   return `
   <div class="land">
+    <div id="lribbon" class="lribbon" hidden></div>
     <header class="lnav">
       <a class="brand" href="#/"><span class="m">${logoSvg()}</span>IdeaFlow</a>
       <nav class="llinks" aria-label="${esc(t('nav_menu'))}">
@@ -281,8 +291,10 @@ function landingView() {
       </nav>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-sm" onclick="cycleLang()" aria-label="${esc(t('top_lang'))}">${S.lang.toUpperCase()}</button>
-      <a class="btn btn-ghost btn-sm" href="#/login">${esc(t('a_login'))}</a>
-      <a class="btn btn-primary btn-sm lhide" href="#/register">${esc(t('a_register'))}</a>
+      ${me
+        ? `<a class="btn btn-primary btn-sm" href="#/app">${icon('home', 16)} ${esc(t('cl_cabinet'))}</a>`
+        : `<a class="btn btn-ghost btn-sm" href="#/login">${esc(t('a_login'))}</a>
+           <a class="btn btn-primary btn-sm lhide" href="#/register">${esc(t('a_register'))}</a>`}
     </header>
 
     <section class="lhero">
@@ -290,7 +302,7 @@ function landingView() {
         <h1>${esc(t('lp_h1'))}</h1>
         <p class="lsub">${esc(t('lp_sub'))}</p>
         <div class="lcta">
-          <a class="btn btn-primary btn-lg" href="#/register">${esc(t('a_register'))}</a>
+          <a class="btn btn-primary btn-lg" href="${join()}">${joinL}</a>
           ${anchor('how', 'ln_how', 'btn btn-ghost btn-lg')}
         </div>
         <ul class="lfacts">
@@ -335,7 +347,7 @@ function landingView() {
               <dt>${esc(t('lp_do'))}</dt><dd>${esc(t(`lp_${p}Do`))}</dd>
               <dt>${esc(t('lp_get'))}</dt><dd>${esc(t(`lp_${p}Get`))}</dd>
             </dl>
-            <a class="go" href="#/register/${r}">${esc(t('a_register'))}</a>
+            <a class="go" href="${join(r)}">${joinL}</a>
           </article>`).join('')}
       </div>
     </section>
@@ -364,12 +376,13 @@ function landingView() {
       <h2>${esc(t('lp_finT'))}</h2>
       <p>${esc(t('lp_finS'))}</p>
       <div class="lfbtns">
-        <a class="btn btn-lg lfbtn" href="#/register">${esc(t('a_register'))}</a>
+        <a class="btn btn-lg lfbtn" href="${join()}">${joinL}</a>
         ${anchor('roles', 'lp_finRole', 'btn btn-lg lfbtn2')}
       </div>
     </section>
     <footer class="lfoot"><span>© ${new Date().getFullYear()} IdeaFlow</span>
-      <span>${esc(t('a_hasAcc'))} <a href="#/login">${esc(t('a_login'))}</a></span></footer>
+      ${me ? `<a href="#/app">${esc(t('lp_toCabinet'))}</a>`
+        : `<span>${esc(t('a_hasAcc'))} <a href="#/login">${esc(t('a_login'))}</a></span>`}</footer>
   </div>`;
 }
 
