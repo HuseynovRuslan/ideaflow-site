@@ -71,7 +71,7 @@ public static class PublicApi
             var p = await LoadAsync(c, id);
             if (p is not null)
                 html = PageMeta.Inject(html, (string)p["title"]! + " — IdeaFlow", (string)p["descr"]!,
-                    $"{ctx.Request.Scheme}://{ctx.Request.Host}/p/{id}", "product");
+                    $"{PageMeta.Origin(ctx)}/p/{id}", "product");
             ctx.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
             return Results.Content(html, "text/html; charset=utf-8");
         });
@@ -145,6 +145,17 @@ public static class PublicApi
 /// </summary>
 public static class PageMeta
 {
+    /// <summary>
+    /// Saytın ünvanı. Tətbiq Caddy-nin arxasında HTTP ilə işləyir — sxemi Caddy-nin
+    /// X-Forwarded-Proto başlığından götürürük, yoxsa önizləmə linki «http://» olardı.
+    /// </summary>
+    public static string Origin(HttpContext ctx)
+    {
+        var proto = ctx.Request.Headers["X-Forwarded-Proto"].ToString().Split(',')[0].Trim();
+        var scheme = proto is "https" or "http" ? proto : ctx.Request.Scheme;
+        return $"{scheme}://{ctx.Request.Host}";
+    }
+
     public static string Inject(string html, string title, string descr, string url, string type)
     {
         descr = Regex.Replace(descr, @"\s+", " ").Trim();

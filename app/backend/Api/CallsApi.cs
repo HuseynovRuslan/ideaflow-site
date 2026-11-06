@@ -403,7 +403,7 @@ public static class CallsApi
             var call = await LoadAsync(c, id);
             if (call is not null)
             {
-                var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/elan/{id}";
+                var url = $"{PageMeta.Origin(ctx)}/elan/{id}";
                 html = PageMeta.Inject(html, $"📣 {call["title"]} — IdeaFlow", (string)call["descr"]!, url, "website");
             }
             ctx.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
