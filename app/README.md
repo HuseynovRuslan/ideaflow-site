@@ -167,8 +167,11 @@ ideyanı istənilən qeydiyyatlı istifadəçi göndərir (`calls`, `call_entrie
 - **Admin təsdiqini gözləmək lazım deyil**: `pending` hesab da göndərir. Belə ideya
   saxlanılır, amma hamıya yalnız hesab təsdiqlənəndən sonra görünür. Admin ideyanı gizlədə
   və silə bilər; müəllif öz ideyasını silə bilər.
-- İdeyada istəyə bağlı texniki təsvir: ölçülər (en × hündürlük × qalınlıq; mm/sm/m,
-  «8,5» də qəbul olunur) və material (siyahıdan seçmək və ya sərbəst yazmaq olar).
+- **Texniki şərtlər elana aiddir, ideyaya yox**: admin elanda ölçünü (en × hündürlük ×
+  qalınlıq, mm/sm/m; aralıq da olar — «8–10»), materialı və digər tələbləri yazır; bütün
+  ideyalar buna uyğunlaşır. İdeya göndərən ölçü/material yazmır (`call_entries.size_*`,
+  `material` sütunları köhnə bazalarda qalır, istifadə olunmur). Şərtlər elan səhifəsində
+  blok, kartlarda və landing-də nişan, formanın üstündə xülasə kimi görünür.
 - Elanın üz qabığı şəkli (admin yükləyir, JPG/PNG/WEBP) kartda, elan səhifəsində,
   landing-də və paylaşım önizləməsində (`og:image`) görünür; şəklin müəllifi/lisenziyası
   ayrıca sahədə saxlanılır və şəklin üstündə göstərilir.

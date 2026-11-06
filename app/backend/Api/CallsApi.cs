@@ -47,7 +47,7 @@ public static class CallsApi
                 select c.id, c.title, c.organizer, c.descr, c.emoji, c.color, c.deadline, c.status,
                        {Accepting}, c.created_at, coalesce(v.ideas, 0), coalesce(v.people, 0),
                        (select count(*) from call_entries a where a.call_id = c.id),
-                       c.cover, c.cover_credit
+                       c.cover, c.cover_credit, {SpecColumns}
                 from calls c
                 left join (select e.call_id, count(*) ideas, count(distinct e.user_id) people
                            from call_entries e join users eu on eu.id = e.user_id
@@ -71,6 +71,7 @@ public static class CallsApi
                     total = admin ? (int?)r.GetInt64(12) : null,
                     coverUrl = CoverUrl(r.GetInt32(0), r.IsDBNull(13) ? null : r.GetString(13)),
                     coverCredit = r.GetString(14),
+                    specs = ReadSpecs(r, 15),
                 });
             }
             return Results.Json(list);
@@ -91,8 +92,7 @@ public static class CallsApi
             // qalanları — yalnız elan ideyaları açıq göstərirsə və ideya hamıya görünəndirsə.
             await using var cmd = new NpgsqlCommand($"""
                 select e.id, e.title, e.descr, e.file_name, e.hidden, e.created_at, e.user_id,
-                       eu.full_name, eu.status, eu.email, eu.phone, {VisibleEntry},
-                       e.size_w, e.size_h, e.size_d, e.size_unit, e.material
+                       eu.full_name, eu.status, eu.email, eu.phone, {VisibleEntry}
                 from call_entries e join users eu on eu.id = e.user_id
                 where e.call_id = @id
                   and (@admin or e.user_id = @me or (@pub and {VisibleEntry}))
@@ -114,14 +114,10 @@ public static class CallsApi
                     var own = u is not null && r.GetInt32(6) == u.Id;
                     if (own) mine++;
                     var file = r.IsDBNull(3) ? null : r.GetString(3);
-                    decimal? Dim(int i) => r.IsDBNull(i) ? null : r.GetDecimal(i);
-                    var (w, h, d) = (Dim(12), Dim(13), Dim(14));
                     entries.Add(new
                     {
                         id = eid, title = r.GetString(1), descr = r.GetString(2),
                         createdAt = r.GetDateTime(5), authorName = r.GetString(7),
-                        size = w is null && h is null && d is null ? null : new { w, h, d, unit = r.GetString(15) },
-                        material = r.GetString(16),
                         file = file is null ? null : new
                         {
                             kind = file.EndsWith(".pdf", StringComparison.Ordinal) ? "pdf" : "image",
@@ -165,10 +161,17 @@ public static class CallsApi
 
             await using var c = await Db.OpenAsync();
             await using var cmd = new NpgsqlCommand("""
-                insert into calls (title, organizer, descr, emoji, color, deadline, status, entries_public, created_by, cover_credit)
-                values (@t, @o, @d, @em, @co, @dl, @st, @pub, @by, @cc) returning id
+                insert into calls (title, organizer, descr, emoji, color, deadline, status, entries_public, created_by, cover_credit,
+                                   spec_w, spec_h, spec_d, spec_unit, spec_material, spec_notes)
+                values (@t, @o, @d, @em, @co, @dl, @st, @pub, @by, @cc, @sw, @sh, @sd, @su, @sm, @sn) returning id
                 """, c);
             cmd.Parameters.AddWithValue("cc", f.CoverCredit ?? "");
+            cmd.Parameters.AddWithValue("sw", f.SpecW ?? "");
+            cmd.Parameters.AddWithValue("sh", f.SpecH ?? "");
+            cmd.Parameters.AddWithValue("sd", f.SpecD ?? "");
+            cmd.Parameters.AddWithValue("su", f.SpecUnit ?? "cm");
+            cmd.Parameters.AddWithValue("sm", f.SpecMaterial ?? "");
+            cmd.Parameters.AddWithValue("sn", f.SpecNotes ?? "");
             cmd.Parameters.AddWithValue("t", f.Title!);
             cmd.Parameters.AddWithValue("o", f.Organizer ?? "");
             cmd.Parameters.AddWithValue("d", f.Descr ?? "");
@@ -207,10 +210,22 @@ public static class CallsApi
                   status         = coalesce(@st, status),
                   entries_public = coalesce(@pub, entries_public),
                   cover_credit   = coalesce(@cc, cover_credit),
+                  spec_w         = coalesce(@sw, spec_w),
+                  spec_h         = coalesce(@sh, spec_h),
+                  spec_d         = coalesce(@sd, spec_d),
+                  spec_unit      = coalesce(@su, spec_unit),
+                  spec_material  = coalesce(@sm, spec_material),
+                  spec_notes     = coalesce(@sn, spec_notes),
                   updated_at     = now()
                 where id = @id
                 """, c);
             cmd.Parameters.Add(Text("cc", f.CoverCredit));
+            cmd.Parameters.Add(Text("sw", f.SpecW));
+            cmd.Parameters.Add(Text("sh", f.SpecH));
+            cmd.Parameters.Add(Text("sd", f.SpecD));
+            cmd.Parameters.Add(Text("su", f.SpecUnit));
+            cmd.Parameters.Add(Text("sm", f.SpecMaterial));
+            cmd.Parameters.Add(Text("sn", f.SpecNotes));
             cmd.Parameters.Add(Text("t", f.Title));
             cmd.Parameters.Add(Text("o", f.Organizer));
             cmd.Parameters.Add(Text("d", f.Descr));
@@ -270,14 +285,7 @@ public static class CallsApi
             var title = Clip(form["title"].ToString(), 120);
             var descr = Clip(form["descr"].ToString(), 3000);
             if (title.Length < 3) return Api.Err(400, "e_title");
-
-            // Texniki təsvir — hamısı istəyə bağlıdır. Ölçü «8,5» və «8.5» kimi qəbul olunur.
-            var material = Clip(form["material"].ToString(), 300);
-            var unit = form["unit"].ToString() is "mm" or "cm" or "m" ? form["unit"].ToString() : "cm";
-            var (okW, sw) = Dimension(form["w"].ToString());
-            var (okH, sh) = Dimension(form["h"].ToString());
-            var (okD, sd) = Dimension(form["d"].ToString());
-            if (!okW || !okH || !okD) return Api.Err(400, "e_entrySize");
+            // Ölçü və material ideyada yazılmır — onları elanın texniki şərtləri müəyyən edir.
 
             var file = form.Files.GetFile("file");
             string? ext = null;
@@ -315,15 +323,9 @@ public static class CallsApi
             }
 
             await using var ins = new NpgsqlCommand("""
-                insert into call_entries (call_id, user_id, title, descr, file_name, file_size,
-                                          size_w, size_h, size_d, size_unit, material)
-                values (@c, @u, @t, @d, @f, @z, @sw, @sh, @sd, @un, @mat) returning id
+                insert into call_entries (call_id, user_id, title, descr, file_name, file_size)
+                values (@c, @u, @t, @d, @f, @z) returning id
                 """, c);
-            ins.Parameters.Add(Num("sw", sw));
-            ins.Parameters.Add(Num("sh", sh));
-            ins.Parameters.Add(Num("sd", sd));
-            ins.Parameters.AddWithValue("un", unit);
-            ins.Parameters.AddWithValue("mat", material);
             ins.Parameters.AddWithValue("c", id);
             ins.Parameters.AddWithValue("u", u.Id);
             ins.Parameters.AddWithValue("t", title);
@@ -509,7 +511,7 @@ public static class CallsApi
                     where e.call_id = c.id and {VisibleEntry}),
                    (select count(distinct e.user_id) from call_entries e join users eu on eu.id = e.user_id
                     where e.call_id = c.id and {VisibleEntry}),
-                   c.cover, c.cover_credit
+                   c.cover, c.cover_credit, {SpecColumns}
             from calls c where c.id = @id
             """, c);
         cmd.Parameters.AddWithValue("id", id);
@@ -532,8 +534,24 @@ public static class CallsApi
             ["people"] = (int)r.GetInt64(12),
             ["coverUrl"] = CoverUrl(r.GetInt32(0), r.IsDBNull(13) ? null : r.GetString(13)),
             ["coverCredit"] = r.GetString(14),
+            ["specs"] = ReadSpecs(r, 15),
         };
     }
+
+    private const string SpecColumns = "c.spec_w, c.spec_h, c.spec_d, c.spec_unit, c.spec_material, c.spec_notes";
+
+    /// <summary>Texniki şərtlər (SpecColumns sırası ilə). Heç biri doldurulmayıbsa null.</summary>
+    private static object? ReadSpecs(NpgsqlDataReader r, int i)
+    {
+        var (w, h, d, unit, material, notes) =
+            (r.GetString(i), r.GetString(i + 1), r.GetString(i + 2), r.GetString(i + 3), r.GetString(i + 4), r.GetString(i + 5));
+        return w.Length + h.Length + d.Length + material.Length + notes.Length == 0
+            ? null : new { w, h, d, unit, material, notes };
+    }
+
+    // Ölçü: rəqəm və ya aralıq — «9», «8,5», «8–10». Boş da olar.
+    private static readonly System.Text.RegularExpressions.Regex SpecSize =
+        new(@"^\d+([.,]\d+)?(\s*[-–]\s*\d+([.,]\d+)?)?$");
 
     /// <summary>Tarix «2026-11-30» kimi sətir gedir — saat qurşağına görə bir gün sürüşməsin.</summary>
     private static string? DateStr(NpgsqlDataReader r, int i) =>
@@ -541,7 +559,9 @@ public static class CallsApi
 
     private sealed record Fields(
         string? Title, string? Organizer, string? Descr, string? Emoji, string? Color,
-        bool DeadlineSet, DateOnly? Deadline, string? Status, bool? EntriesPublic, string? CoverCredit, string? Error);
+        bool DeadlineSet, DateOnly? Deadline, string? Status, bool? EntriesPublic, string? CoverCredit,
+        string? SpecW, string? SpecH, string? SpecD, string? SpecUnit, string? SpecMaterial, string? SpecNotes,
+        string? Error);
 
     /// <summary>Elan sahələri. null — «göndərilməyib, dəyişmə» (redaktədə).</summary>
     private static Fields ReadFields(JsonElement b, bool creating)
@@ -573,10 +593,24 @@ public static class CallsApi
         bool? pub = b.TryGetProperty("entriesPublic", out var pv) && pv.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? pv.GetBoolean() : null;
 
-        return new Fields(title, S("organizer", 120), S("descr", 8000), emoji, color,
-            deadlineSet, deadline, status, pub, S("coverCredit", 200), null);
+        // Texniki şərtlər: ölçülər rəqəm və ya aralıq, tire həmişə «–» kimi saxlanılır.
+        string? Size(string name)
+        {
+            var v = S(name, 20);
+            return v is null ? null : System.Text.RegularExpressions.Regex.Replace(v, @"\s*[-–]\s*", "–");
+        }
+        var (sw, sh, sd) = (Size("specW"), Size("specH"), Size("specD"));
+        foreach (var v in new[] { sw, sh, sd })
+            if (v is { Length: > 0 } && !SpecSize.IsMatch(v)) return Err("e_callSpec");
+        var unit = S("specUnit", 4);
+        if (unit is not null and not ("mm" or "cm" or "m")) return Err("e_callSpec");
 
-        static Fields Err(string key) => new(null, null, null, null, null, false, null, null, null, null, key);
+        return new Fields(title, S("organizer", 120), S("descr", 8000), emoji, color,
+            deadlineSet, deadline, status, pub, S("coverCredit", 200),
+            sw, sh, sd, unit, S("specMaterial", 300), S("specNotes", 2000), null);
+
+        static Fields Err(string key) =>
+            new(null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, key);
     }
 
     private static string Clip(string s, int max)
@@ -587,20 +621,6 @@ public static class CallsApi
 
     private static NpgsqlParameter Text(string name, string? value) =>
         new(name, NpgsqlTypes.NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };
-
-    private static NpgsqlParameter Num(string name, decimal? value) =>
-        new(name, NpgsqlTypes.NpgsqlDbType.Numeric) { Value = value is { } v ? v : DBNull.Value };
-
-    /// <summary>Boş — ölçü verilməyib (ok). Rəqəm deyilsə və ya 0 &lt; x ≤ 100 000 deyilsə — xəta.</summary>
-    private static (bool Ok, decimal? Value) Dimension(string raw)
-    {
-        raw = raw.Trim().Replace(',', '.');
-        if (raw.Length == 0) return (true, null);
-        if (!decimal.TryParse(raw, System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.InvariantCulture, out var v) || v <= 0 || v > 100_000)
-            return (false, null);
-        return (true, Math.Round(v, 2));
-    }
 
     /// <summary>Üz qabığının URL-i; ?v= fayl adından — şəkil dəyişəndə keş özü yenilənir.</summary>
     private static string? CoverUrl(int id, string? stored) =>
@@ -669,6 +689,42 @@ public static class CallsApi
         await using var c = await Db.OpenAsync();
         await SeedCallAsync(c, log);
         await SeedCoverAsync(c, log, webRoot);
+        await SeedSpecsAsync(c, log);
+    }
+
+    /// <summary>
+    /// Novxanı elanının texniki şərtləri — elanın mətnində yazılanlardan (təxminən 8–10 sm,
+    /// tikmə, forma, 5-dən çox olmayan rəng). BİR DƏFƏ və yalnız şərtlər hələ boşdursa yazılır:
+    /// admin artıq öz şərtlərini qoyubsa, toxunulmur.
+    /// </summary>
+    private static async Task SeedSpecsAsync(NpgsqlConnection c, ILogger log)
+    {
+        const string key = "seed_call_specs:novxani";
+        if (await SettingAsync(c, key) is not null) return;
+        if (!int.TryParse(await SettingAsync(c, "seed_call:novxani-shevron"), out var id)) return;
+
+        await using var tx = await c.BeginTransactionAsync();
+        int n;
+        await using (var upd = new NpgsqlCommand("""
+            update calls set spec_w = '8–10', spec_h = '8–10', spec_unit = 'cm',
+                   spec_material = @m, spec_notes = @n, updated_at = now()
+            where id = @id and spec_w = '' and spec_h = '' and spec_d = '' and spec_material = '' and spec_notes = ''
+            """, c, tx))
+        {
+            upd.Parameters.AddWithValue("m", "Tikmə — parça üzərində iplik");
+            upd.Parameters.AddWithValue("n",
+                "Forma: dairə, qalxan və ya düzbucaqlı.\nRənglər: 5-dən çox olmasın — sadə dizayn tikmədə daha yaxşı alınır.");
+            upd.Parameters.AddWithValue("id", id);
+            n = await upd.ExecuteNonQueryAsync();
+        }
+        await using (var mark = new NpgsqlCommand("insert into settings (key, value) values (@k, @v)", c, tx))
+        {
+            mark.Parameters.AddWithValue("k", key);
+            mark.Parameters.AddWithValue("v", n > 0 ? "set" : "skip");
+            await mark.ExecuteNonQueryAsync();
+        }
+        await tx.CommitAsync();
+        if (n > 0) log.LogInformation("Novxanı elanına texniki şərtlər yazıldı (#{Id})", id);
     }
 
     private static async Task<string?> SettingAsync(NpgsqlConnection c, string key)

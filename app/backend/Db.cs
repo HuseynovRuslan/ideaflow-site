@@ -255,7 +255,17 @@ public static class Db
     alter table calls add column if not exists cover        text;
     alter table calls add column if not exists cover_credit text not null default '';
 
-    -- İdeyanın texniki təsviri: ölçülər (en × hündürlük × qalınlıq) və material.
+    -- Elanın texniki şərtləri — bütün ideyalar bunlara uyğun olmalıdır. Ölçü mətn kimi
+    -- saxlanılır ki, təşkilatçı aralıq da yaza bilsin («8–10»).
+    alter table calls add column if not exists spec_w        text not null default '';
+    alter table calls add column if not exists spec_h        text not null default '';
+    alter table calls add column if not exists spec_d        text not null default '';
+    alter table calls add column if not exists spec_unit     text not null default 'cm';
+    alter table calls add column if not exists spec_material text not null default '';
+    alter table calls add column if not exists spec_notes    text not null default '';
+
+    -- İdeyanın öz ölçü/material sahələri (2026-11-06) LƏĞV EDİLİB: detalları elan müəyyən edir.
+    -- Sütunlar köhnə bazalarda qalır, tətbiq onları artıq nə yazır, nə oxuyur.
     alter table call_entries add column if not exists size_w    numeric(10,2);
     alter table call_entries add column if not exists size_h    numeric(10,2);
     alter table call_entries add column if not exists size_d    numeric(10,2);

@@ -125,6 +125,7 @@ function callCard(c) {
       <div class="callchips">${callBadge(c)}${deadlineChip(c)}</div>
       <h3>${esc(c.title)}</h3>
       ${c.organizer ? `<p class="cc-org">${esc(c.organizer)}</p>` : ''}
+      ${specChips(c.specs)}
       <p class="cc-ex">${esc(c.excerpt)}</p>
       <div class="cc-foot">
         <span>💡 ${num(c.ideas)} ${esc(t('cl_ideasShort'))}</span>
@@ -157,6 +158,7 @@ function callPageHtml(c) {
       <h1>${esc(c.title)}</h1>
       ${c.organizer ? `<p class="muted callorg">${esc(t('cl_org'))}: <b>${esc(c.organizer)}</b></p>` : ''}
       ${cta}
+      ${specsBlock(c)}
       <div class="pubdescr">${esc(c.descr)}</div>
       <div class="pubstats">
         <div><b>${num(c.ideas)}</b><span>${esc(t('cl_ideas'))}</span></div>
@@ -216,27 +218,16 @@ function submitBlock(c, mine) {
 
 function entryForm(c) {
   const left = c.limit - c.mine;
+  // Ölçü və material ideyada soruşulmur — elanın şərtləri hamı üçün eynidir.
+  const chips = specChips(c.specs);
   return `
+    ${chips ? `<div class="formspecs"><span>${esc(t('cl_formSpecs'))}</span>${chips}</div>` : ''}
     <div id="formerr"></div>
     <form onsubmit="sendEntry(event, ${c.id})" class="callform">
       <div class="field"><label for="ce_title">${esc(t('cl_fName'))}</label>
         <input id="ce_title" maxlength="120" minlength="3" required placeholder="${esc(t('cl_fNamePh'))}"></div>
       <div class="field"><label for="ce_descr">${esc(t('cl_fDesc'))}</label>
         <textarea id="ce_descr" rows="4" maxlength="3000" placeholder="${esc(t('cl_fDescPh'))}"></textarea></div>
-      <fieldset class="specs">
-        <legend>📐 ${esc(t('cl_fSize'))}</legend>
-        <div class="specgrid">
-          ${[['w', 'cl_fW', '9'], ['h', 'cl_fH', '7'], ['d', 'cl_fD', '0,3']].map(([k, label, ph]) => `
-            <div class="field"><label for="ce_${k}">${esc(t(label))}</label>
-              <input id="ce_${k}" inputmode="decimal" maxlength="9" placeholder="${ph}" pattern="[0-9]+([.,][0-9]{1,2})?"></div>`).join('')}
-          <div class="field"><label for="ce_unit">${esc(t('cl_fUnit'))}</label>
-            <select id="ce_unit">${['mm', 'cm', 'm'].map((u) => `<option value="${u}" ${u === 'cm' ? 'selected' : ''}>${esc(unitL(u))}</option>`).join('')}</select></div>
-        </div>
-      </fieldset>
-      <div class="field"><label for="ce_mat">🧵 ${esc(t('cl_fMat'))}</label>
-        <input id="ce_mat" list="ce_mats" maxlength="300" placeholder="${esc(t('cl_fMatPh'))}">
-        <datalist id="ce_mats">${t('cl_matList').split('|').map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
-        <div class="muted callsmall">${esc(t('cl_fMatHint'))}</div></div>
       <div class="field"><label for="ce_file">${esc(t('cl_fFile'))}</label>
         <label class="dropzone filepick" for="ce_file" id="ce_drop">
           ${icon('clip', 18)} <span id="ce_fname">${esc(t('cl_fFilePick'))}</span>
@@ -281,9 +272,6 @@ async function sendEntry(e, id) {
   const fd = new FormData();
   fd.append('title', val('ce_title'));
   fd.append('descr', val('ce_descr'));
-  ['w', 'h', 'd'].forEach((k) => fd.append(k, val('ce_' + k)));
-  fd.append('unit', val('ce_unit'));
-  fd.append('material', val('ce_mat'));
   const f = $('#ce_file') && $('#ce_file').files[0];
   if (f) fd.append('file', f);
   try {
@@ -337,31 +325,53 @@ function entryCard(e, c) {
       ${flags ? `<div class="eflags">${flags}</div>` : ''}
       <h3>${esc(e.title)}</h3>
       ${e.descr ? `<p class="edescr">${esc(e.descr)}</p>` : ''}
-      ${specLine(e)}
       <div class="emeta">${icon('user', 14)} ${esc(e.authorName)} · ${fdate(e.createdAt)}</div>
       ${admin}
     </div>
   </article>`;
 }
 
-/* Ölçü vahidi və rəqəm dilə uyğun: «sm» / «см» / «cm», «0,3» / «0.3». */
+/* ===================== ELANIN TEXNİKİ ŞƏRTLƏRİ =====================
+   Ölçü və materialı elan müəyyən edir, bütün ideyalar ona uyğunlaşır. */
 function unitL(u) { return t('cl_unit_' + u); }
-function dimL(v) { const s = String(Number(v)); return S.lang === 'en' ? s : s.replace('.', ','); }
+/* Admin «8,5» və ya «8.5» yaza bilər — göstərişdə dilə uyğun ayırıcı. */
+function dimL(v) { const s = String(v); return S.lang === 'en' ? s.replace(',', '.') : s.replace('.', ','); }
 
-/* «📐 9 × 7 × 0,3 sm · 🧵 Tikmə» — en və hündürlük varsa adi yazılış, yoxsa adları ilə. */
-function specLine(e) {
+/* «8–10 × 8–10 sm» — en və hündürlük varsa adi yazılış, yoxsa adları ilə («qalınlıq 3 mm»). */
+function sizeText(s) {
+  if (!s || !(s.w || s.h || s.d)) return '';
+  const txt = s.w && s.h
+    ? [s.w, s.h, s.d].filter(Boolean).map(dimL).join(' × ')
+    : [['cl_fW', s.w], ['cl_fH', s.h], ['cl_fD', s.d]].filter(([, v]) => v)
+      .map(([k, v]) => `${t(k).toLowerCase()} ${dimL(v)}`).join(', ');
+  return `${txt} ${unitL(s.unit)}`;
+}
+
+/* Qısa nişanlar — kartlarda və formanın üstündə. */
+function specChips(s) {
+  if (!s) return '';
+  const size = sizeText(s);
   const parts = [];
-  const s = e.size;
-  if (s) {
-    const has = (v) => v !== null && v !== undefined;
-    const txt = has(s.w) && has(s.h)
-      ? [s.w, s.h, s.d].filter(has).map(dimL).join(' × ')
-      : [['cl_fW', s.w], ['cl_fH', s.h], ['cl_fD', s.d]].filter(([, v]) => has(v))
-        .map(([k, v]) => `${t(k).toLowerCase()} ${dimL(v)}`).join(', ');
-    parts.push(`<span title="${esc(t('cl_fSize'))}">📐 ${esc(txt)} ${esc(unitL(s.unit))}</span>`);
-  }
-  if (e.material) parts.push(`<span title="${esc(t('cl_fMat'))}">🧵 ${esc(e.material)}</span>`);
+  if (size) parts.push(`<span title="${esc(t('cl_specSize'))}">📐 ${esc(size)}</span>`);
+  if (s.material) parts.push(`<span title="${esc(t('cl_specMat'))}">🧵 ${esc(s.material)}</span>`);
   return parts.length ? `<div class="especs">${parts.join('')}</div>` : '';
+}
+
+/* Elan səhifəsində tam blok: ölçü, material, digər tələblər. */
+function specsBlock(c) {
+  const s = c.specs;
+  if (!s) return '';
+  const size = sizeText(s);
+  const row = (ic, k, v) => `<div class="sprow"><span class="spic">${ic}</span><div><small>${esc(t(k))}</small><b>${esc(v)}</b></div></div>`;
+  return `<section class="callspecs">
+    <h3>📋 ${esc(t('cl_specT'))}</h3>
+    <p class="muted">${esc(t('cl_specS'))}</p>
+    <div class="sprows">
+      ${size ? row('📐', 'cl_specSize', size) : ''}
+      ${s.material ? row('🧵', 'cl_specMat', s.material) : ''}
+      ${s.notes ? row('✏️', 'cl_specNotes', s.notes) : ''}
+    </div>
+  </section>`;
 }
 
 /* ---------------------------------------------------------- əməliyyatlar */
@@ -395,6 +405,7 @@ async function editCall(id) {
   try {
     if (id) c = S.call && S.call.id === id ? S.call : await API.get('/calls/' + id);
   } catch (err) { toastErr(err); return; }
+  const sp = c.specs || {};
   openModal(`
     <h3>${esc(t(id ? 'cl_editT' : 'cl_newT'))}</h3>
     <div class="field"><label for="cf_title">${esc(t('cl_fTitle'))}</label>
@@ -427,6 +438,22 @@ async function editCall(id) {
       <input id="cf_credit" maxlength="200" value="${esc(c.coverCredit || '')}" placeholder="${esc(t('cl_fCreditPh'))}"></div>
     <div class="field"><label for="cf_descr">${esc(t('cl_fDescr'))}</label>
       <textarea id="cf_descr" rows="9" maxlength="8000">${esc(c.descr)}</textarea></div>
+    <fieldset class="specs">
+      <legend>📋 ${esc(t('cl_fSpecs'))}</legend>
+      <p class="muted callsmall" style="margin:0 0 10px">${esc(t('cl_fSpecsHint'))}</p>
+      <div class="specgrid">
+        ${[['w', 'cl_fW'], ['h', 'cl_fH'], ['d', 'cl_fD']].map(([k, label]) => `
+          <div class="field"><label for="cf_s${k}">${esc(t(label))}</label>
+            <input id="cf_s${k}" maxlength="20" placeholder="${k === 'd' ? '0,3' : '8–10'}" value="${esc((sp[k]) || '')}"></div>`).join('')}
+        <div class="field"><label for="cf_sunit">${esc(t('cl_fUnit'))}</label>
+          <select id="cf_sunit">${['mm', 'cm', 'm'].map((u) => `<option value="${u}" ${u === (sp.unit || 'cm') ? 'selected' : ''}>${esc(unitL(u))}</option>`).join('')}</select></div>
+      </div>
+      <div class="field"><label for="cf_smat">🧵 ${esc(t('cl_fMat'))}</label>
+        <input id="cf_smat" list="cf_smats" maxlength="300" placeholder="${esc(t('cl_fMatPh'))}" value="${esc(sp.material || '')}">
+        <datalist id="cf_smats">${t('cl_matList').split('|').map((m) => `<option value="${esc(m)}">`).join('')}</datalist></div>
+      <div class="field"><label for="cf_snotes">✏️ ${esc(t('cl_fSpecNotes'))}</label>
+        <textarea id="cf_snotes" rows="3" maxlength="2000" placeholder="${esc(t('cl_fSpecNotesPh'))}">${esc(sp.notes || '')}</textarea></div>
+    </fieldset>
     <div class="field"><label for="cf_status">${esc(t('cl_fStatus'))}</label>
       <select id="cf_status">
         <option value="open" ${c.status === 'open' ? 'selected' : ''}>${esc(t('cl_open'))}</option>
@@ -444,6 +471,8 @@ async function editCall(id) {
       emoji: val('cf_emoji'), color: on ? on.dataset.c : CALL_COLORS[0],
       deadline: val('cf_deadline'), status: val('cf_status'), entriesPublic: $('#cf_public').checked,
       coverCredit: val('cf_credit'),
+      specW: val('cf_sw'), specH: val('cf_sh'), specD: val('cf_sd'), specUnit: val('cf_sunit'),
+      specMaterial: val('cf_smat'), specNotes: $('#cf_snotes').value.trim(),
     };
     const cover = $('#cf_cover').files[0];
     const dropCover = $('#cf_cdel') && $('#cf_cdel').checked;
@@ -567,6 +596,7 @@ function featuredCall(c) {
       <div class="callchips">${deadlineChip(c)}${c.organizer ? `<span class="chip">${esc(c.organizer)}</span>` : ''}</div>
       <h3><a href="/elan/${c.id}">${esc(c.title)}</a></h3>
       <p class="lf-ex">${esc(first)}</p>
+      ${specChips(c.specs)}
       <ol class="lf-steps">
         ${['cl_step1', 'cl_step2', 'cl_step3'].map((k, i) => `<li><b>${i + 1}</b><span>${esc(t(k))}</span></li>`).join('')}
       </ol>
