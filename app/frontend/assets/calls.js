@@ -561,7 +561,6 @@ function featuredCall(c) {
     <a class="lf-media" href="/elan/${c.id}" style="background:${safeColor(c.color)}" aria-label="${esc(c.title)}">
       ${c.coverUrl ? `<img src="${esc(c.coverUrl)}" alt="" loading="lazy">` : `<span class="lf-emoji">${esc(c.emoji)}</span>`}
       <span class="lf-live">● ${esc(t('cl_open'))}</span>
-      <span class="lf-badge" aria-hidden="true">${esc(c.emoji)}</span>
       ${c.coverUrl && c.coverCredit ? `<small class="credit">${esc(c.coverCredit)}</small>` : ''}
     </a>
     <div class="lf-body">

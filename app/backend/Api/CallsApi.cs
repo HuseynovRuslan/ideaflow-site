@@ -705,22 +705,28 @@ public static class CallsApi
     }
 
     /// <summary>
-    /// Novxanı elanına üz qabığı — Xəzər sahili, Novxanı çimərliyi (Wikimedia Commons,
-    /// «Caspian Sea Novxani beach e-citizen.jpg», Moonsun1981, CC BY-SA 3.0). Şəkil
-    /// frontend/assets/img-də gəlir və BİR DƏFƏ yükləmə qovluğuna köçürülür. Admin artıq
-    /// öz şəklini qoyubsa və ya elan silinibsə, toxunulmur.
+    /// Novxanı elanının üz qabığı — masa üstündə tikmə şevron nümunələri (sayt sahibinin
+    /// verdiyi şəkil, frontend/assets/img/novxani-sevronlar.jpg). BİR DƏFƏ yükləmə qovluğuna
+    /// köçürülür. Əvvəlki yayımda avtomatik qoyulmuş Xəzər şəkli (seed_call_cover:novxani,
+    /// Wikimedia) bununla əvəz olunur; admin öz şəklini qoyubsa və ya elan silinibsə, toxunulmur.
     /// </summary>
     private static async Task SeedCoverAsync(NpgsqlConnection c, ILogger log, string webRoot)
     {
-        const string key = "seed_call_cover:novxani";
+        const string key = "seed_call_cover:novxani-v2";
+        const string oldCredit = "Foto: Moonsun1981 · CC BY-SA 3.0 · Wikimedia Commons";
         if (await SettingAsync(c, key) is not null) return;
         if (!int.TryParse(await SettingAsync(c, "seed_call:novxani-shevron"), out var id)) return;
 
-        var src = Path.Combine(webRoot, "assets", "img", "novxani-xezer.jpg");
+        var src = Path.Combine(webRoot, "assets", "img", "novxani-sevronlar.jpg");
         if (!File.Exists(src)) { log.LogWarning("Novxanı üz qabığı tapılmadı: {Path}", src); return; }
 
+        // Yalnız boş üz qabığı və ya əvvəlki avtomatik şəkil əvəz olunur — adminin öz şəkli yox.
+        var oldSeed = await SettingAsync(c, "seed_call_cover:novxani");
+        var current = await CoverNameAsync(c, id);
+        var replace = current == "" || (current is { Length: > 0 } && current == oldSeed);
+
         string? stored = null;
-        if (await CoverNameAsync(c, id) == "")
+        if (replace)
         {
             stored = await SaveAsync(async (dst, ct) =>
             {
@@ -733,10 +739,11 @@ public static class CallsApi
         if (stored is not null)
         {
             await SetCoverAsync(c, id, stored, tx);
+            // Köhnə şəklin müəllif qeydi (Wikimedia) yeni şəklə aid deyil.
             await using var credit = new NpgsqlCommand(
-                "update calls set cover_credit = @cc where id = @id and cover_credit = ''", c, tx);
-            credit.Parameters.AddWithValue("cc", "Foto: Moonsun1981 · CC BY-SA 3.0 · Wikimedia Commons");
+                "update calls set cover_credit = '' where id = @id and cover_credit = @old", c, tx);
             credit.Parameters.AddWithValue("id", id);
+            credit.Parameters.AddWithValue("old", oldCredit);
             await credit.ExecuteNonQueryAsync();
         }
         await using (var mark = new NpgsqlCommand("insert into settings (key, value) values (@k, @v)", c, tx))
@@ -746,7 +753,10 @@ public static class CallsApi
             await mark.ExecuteNonQueryAsync();
         }
         await tx.CommitAsync();
-        if (stored is not null) log.LogInformation("Novxanı elanına üz qabığı qoyuldu (#{Id})", id);
+
+        if (stored is null) return;
+        if (current is { Length: > 0 }) DeleteFile(current);
+        log.LogInformation("Novxanı elanına üz qabığı qoyuldu (#{Id})", id);
     }
 
     private const string NovxaniText = """

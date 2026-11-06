@@ -989,8 +989,6 @@
   .lf-emoji{font-size:110px}
   .lf-live{position:absolute;top:16px;left:16px;background:#fff;color:#15803D;font-size:12.5px;font-weight:900;
     padding:6px 12px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
-  .lf-badge{position:absolute;left:16px;bottom:16px;width:66px;height:66px;border-radius:18px;background:rgba(255,255,255,.92);
-    display:grid;place-items:center;font-size:34px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
   .lf-body{padding:30px 32px;display:flex;flex-direction:column;gap:12px;min-width:0}
   .lf-body h3{font-size:clamp(24px,2.6vw,32px);font-weight:900;letter-spacing:-.02em;line-height:1.15}
   .lf-body h3 a:hover{color:var(--accent)}

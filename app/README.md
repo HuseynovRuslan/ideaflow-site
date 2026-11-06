@@ -182,9 +182,9 @@ ideyanı istənilən qeydiyyatlı istifadəçi göndərir (`calls`, `call_entrie
 - Son tarix Bakı vaxtı ilə həmin günün sonuna qədərdir; bağlı elana göndərmək olmur.
 - «Novxanı kəndinin şevronları» elanı ilk yayımda bir dəfə yaradılır
   (`settings` → `seed_call:novxani-shevron`); silinsə, yenidən yaranmır. Üz qabığı —
-  `frontend/assets/img/novxani-xezer.jpg`: Novxanı çimərliyi, Xəzər
-  ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Caspian_Sea_Novxani_beach_e-citizen.jpg),
-  Moonsun1981, CC BY-SA 3.0, 1280px-ə kiçildilib); bir dəfə qoyulur (`seed_call_cover:novxani`).
+  `frontend/assets/img/novxani-sevronlar.jpg` (tikmə şevron nümunələri, sayt sahibinin
+  şəkli); bir dəfə qoyulur (`seed_call_cover:novxani-v2`) və əvvəlki avtomatik Xəzər
+  şəklini əvəz edir. Admin öz şəklini qoyubsa, toxunulmur.
 
 ## Müqavilə layihəsi
 
