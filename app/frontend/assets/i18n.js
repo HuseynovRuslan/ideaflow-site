@@ -128,7 +128,7 @@ const DICT={
 
   /* kimlər üçün */
   lp_rolesT:['Hər iştirakçı öz işini görür','Каждый участник делает своё дело','Everyone does their own part'],
-  lp_rolesS:['Rolunu seç və qeydiyyatdan keç. Hesabı admin təsdiqləyir.','Выберите роль и зарегистрируйтесь. Аккаунт подтверждает админ.','Pick your role and sign up. An admin approves the account.'],
+  lp_rolesS:['Rolunu seç və qeydiyyatdan keç. İdeya müəllifi dərhal başlayır; istehsalçı, investor və satıcı hesabını admin təsdiqləyir.','Выберите роль и зарегистрируйтесь. Автор идеи начинает сразу; аккаунты производителей, инвесторов и продавцов подтверждает админ.','Pick your role and sign up. Idea authors start right away; an admin approves manufacturers, investors and sellers.'],
   lp_do:['Nə edirsən','Что вы делаете','What you do'],
   lp_get:['Nə qazanırsan','Что получаете','What you get'],
   lp_aDo:['Məhsul ideyasını yazırsan və gələn təkliflərdən seçim edirsən.','Описываете идею продукта и выбираете из поступивших предложений.','You describe a product idea and choose from incoming offers.'],
@@ -156,7 +156,7 @@ const DICT={
   /* suallar */
   lp_faqT:['Tez-tez verilən suallar','Частые вопросы','Frequently asked questions'],
   lp_q1:['İdeyamı kimsə oğurlaya bilərmi?','Могут ли украсть мою идею?','Can someone steal my idea?'],
-  lp_a1:['Qaralama və yoxlama mərhələsində ideyanı yalnız sən və admin görürsən. Sonra o, yalnız admin təsdiqindən keçmiş iştirakçılara açılır. Müqavilə layihəsində ideyanın hüquqları müəllifə məxsusdur; istehsalçı və investor məlumatı açıqlamamağı və oxşar məhsulu sənin razılığın olmadan istehsal etməməyi öhdələrinə götürürlər.','На этапах черновика и проверки идею видите только вы и админ. Затем она открывается только участникам, которых одобрил админ. В проекте договора права на идею принадлежат автору; производитель и инвестор обязуются не раскрывать информацию и не выпускать похожий продукт без вашего согласия.','During the draft and review stages only you and the admin can see the idea. After that it opens only to members the admin has approved. In the draft contract the rights to the idea belong to the author; the manufacturer and investor agree not to disclose information or make a similar product without your consent.'],
+  lp_a1:['Qaralama və yoxlama mərhələsində ideyanı yalnız sən və admin görürsən. Sonra admin onu kataloqa buraxır; istehsal və investisiya təklifini isə yalnız admin təsdiqindən keçmiş istehsalçı və investorlar verə bilər. Müqavilə layihəsində ideyanın hüquqları müəllifə məxsusdur; istehsalçı və investor məlumatı açıqlamamağı və oxşar məhsulu sənin razılığın olmadan istehsal etməməyi öhdələrinə götürürlər.','На этапах черновика и проверки идею видите только вы и админ. Затем админ выпускает её в каталог; предлагать производство и инвестиции могут только производители и инвесторы, одобренные админом. В проекте договора права на идею принадлежат автору; производитель и инвестор обязуются не раскрывать информацию и не выпускать похожий продукт без вашего согласия.','During the draft and review stages only you and the admin can see the idea. Then the admin releases it to the catalogue; only manufacturers and investors approved by the admin can make production or investment offers. In the draft contract the rights to the idea belong to the author; the manufacturer and investor agree not to disclose information or make a similar product without your consent.'],
   lp_q2:['Bunun üçün pul lazımdır?','Нужны ли для этого деньги?','Do I need money for this?'],
   lp_a2:['Qeydiyyat pulsuzdur. İstehsalı investor maliyyələşdirir. Platforma istehsal, investisiya və satış sövdələşmələrindən komissiya alır.','Регистрация бесплатна. Производство финансирует инвестор. Платформа берёт комиссию со сделок по производству, инвестициям и продажам.','Sign-up is free. An investor funds production. The platform takes a commission on production, investment and sales deals.'],
   lp_q3:['Hansı ideyalar uyğundur?','Какие идеи подходят?','What kind of ideas fit?'],
@@ -421,7 +421,7 @@ const DICT={
   a_loginTitle:['Sistemə giriş','Вход в систему','Sign in'],
   a_loginSub:['Hesabınızla daxil olun','Войдите в свой аккаунт','Log in to your account'],
   a_regTitle:['Qeydiyyat','Регистрация','Create an account'],
-  a_regSub:['Rolunuzu seçin — hesab admin təsdiqindən sonra aktivləşir','Выберите роль — аккаунт активируется после подтверждения администратором','Pick your role — the account activates after admin approval'],
+  a_regSub:['Rolunuzu seçin. İdeya müəllifinin hesabı dərhal açılır; istehsalçı, investor və satıcı hesabı admin təsdiqindən sonra aktivləşir.','Выберите роль. Аккаунт автора идеи открывается сразу; аккаунты производителя, инвестора и продавца — после подтверждения администратором.','Pick your role. Idea author accounts open immediately; manufacturer, investor and seller accounts activate after admin approval.'],
   a_email:['E-poçt','E-mail','Email'],
   a_pass:['Parol','Пароль','Password'],
   a_passHint:['Ən azı 8 simvol','Минимум 8 символов','At least 8 characters'],
@@ -735,6 +735,7 @@ const DICT={
   ad_noneSel:['Heç kim seçilməyib','Никто не выбран','Nobody selected'],
   ad_auto:['Avtomatik təsdiq','Автоматическое подтверждение','Auto-approval'],
   ad_autoSub:['Seçilmiş rollar üçün yeni hesab admin gözləmədən dərhal aktivləşir. İnvestor və istehsalçı üçün əl ilə yoxlama tövsiyə olunur.','Для выбранных ролей новый аккаунт активируется сразу, без ожидания админа. Инвесторов и производителей рекомендуется проверять вручную.','New accounts for the selected roles are activated immediately. Manual review is recommended for investors and manufacturers.'],
+  ad_autoAuthor:['həmişə təsdiqsiz aktivləşir','всегда активируется без подтверждения','always activated without approval'],
   ad_ai:['Claude təhlili','Анализ Claude','Claude analysis'],
   ad_aiLimit:['Gündəlik limit (bir istifadəçi üçün)','Дневной лимит (на пользователя)','Daily limit (per user)'],
   ad_views:['👁 Rol baxışı','👁 Просмотр ролей','👁 Role preview'],

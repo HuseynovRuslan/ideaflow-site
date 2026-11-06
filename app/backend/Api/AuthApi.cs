@@ -33,8 +33,11 @@ public static class AuthApi
                 if (await dup.ExecuteScalarAsync() is not null) return Api.Err(409, "e_dupEmail");
             }
 
-            // Admin bu rol üçün avtomatik təsdiqi açıbsa hesab dərhal aktiv olur.
-            var auto = (await Settings.AllAsync(c)).GetValueOrDefault("auto_" + role) == "1";
+            // İdeya müəllifi təsdiq gözləmir — qeydiyyatdan keçən kimi ideyasını yaza bilsin
+            // (sayt sahibinin qərarı, 2026-11-06). İstehsalçı, investor və satıcı pul və
+            // müqaviləyə toxunur — onları admin yoxlayır, əgər bu rol üçün avtomatik təsdiqi açmayıbsa.
+            var auto = role == "author" ||
+                       (await Settings.AllAsync(c)).GetValueOrDefault("auto_" + role) == "1";
             var status = auto ? "active" : "pending";
 
             // «@st::text» — parametr iki yerdə işlənir; tip açıq verilməsə Postgres

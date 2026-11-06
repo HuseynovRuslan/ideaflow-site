@@ -43,6 +43,7 @@ await Db.MigrateAsync();
 await EnsureAdminAsync(log);
 await GrantListedAdminsAsync(log);
 await CleanupSessionsAsync();
+await ActivatePendingAuthorsAsync(log);
 await CallsApi.SeedAsync(log, app.Environment.WebRootPath);
 
 // ---------------------------------------------------------------- keş qaydaları
@@ -220,6 +221,45 @@ static async Task GrantListedAdminsAsync(ILogger log)
         }
         await Audit.LogAsync(c, null, "admin_grant_code", "user", id, new { email }, null);
         log.LogInformation("Hesab koddan admin edildi: {Email}", email);
+    }
+}
+
+/// <summary>
+/// İdeya müəllifi artıq admin təsdiqi gözləmir (2026-11-06). Bu qərardan əvvəl qeydiyyatdan
+/// keçib «pending» qalan müəllifləri BİR DƏFƏ aktivləşdiririk — onların da ideyaları görünsün.
+/// Admin rədd etdiyi və ya blokladığı hesablara toxunulmur; qeyd settings-də saxlanılır.
+/// </summary>
+static async Task ActivatePendingAuthorsAsync(ILogger log)
+{
+    const string key = "policy:authors_no_approval";
+    await using var c = await Db.OpenAsync();
+    await using (var done = new NpgsqlCommand("select 1 from settings where key = @k", c))
+    {
+        done.Parameters.AddWithValue("k", key);
+        if (await done.ExecuteScalarAsync() is not null) return;
+    }
+
+    await using var tx = await c.BeginTransactionAsync();
+    var ids = new List<int>();
+    await using (var upd = new NpgsqlCommand("""
+        update users set status = 'active', approved_at = coalesce(approved_at, now())
+        where role = 'author' and status = 'pending' returning id
+        """, c, tx))
+    await using (var r = await upd.ExecuteReaderAsync())
+        while (await r.ReadAsync()) ids.Add(r.GetInt32(0));
+
+    await using (var mark = new NpgsqlCommand("insert into settings (key, value) values (@k, @v)", c, tx))
+    {
+        mark.Parameters.AddWithValue("k", key);
+        mark.Parameters.AddWithValue("v", ids.Count.ToString());
+        await mark.ExecuteNonQueryAsync();
+    }
+    await tx.CommitAsync();
+
+    if (ids.Count > 0)
+    {
+        await Audit.LogAsync(c, null, "authors_auto_activate", "user", null, new { count = ids.Count, ids }, null);
+        log.LogInformation("Təsdiq gözləyən {Count} ideya müəllifi aktivləşdirildi", ids.Count);
     }
 }
 

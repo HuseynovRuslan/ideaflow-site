@@ -201,8 +201,12 @@ hüquqi qüvvəsi yoxdur və hüquqşünas yoxlamalıdır.
 - İcmalda təsdiq növbəsi: gözləyən hesablar və qiymətləndirmə gözləyən layihələr
   bir kliklə təsdiq/rədd olunur, «Hamısını təsdiqlə» düyməsi var.
 - İstifadəçilər cədvəlində checkbox ilə toplu təsdiq (`POST /api/admin/users/bulk-status`).
-- Parametrlərdə rol üzrə **avtomatik təsdiq** (`auto_author`, `auto_seller`, ...) —
-  default hamısı söndürülüb.
+- **İdeya müəllifi təsdiq gözləmir** — qeydiyyatdan keçən kimi aktivdir (`AuthApi.cs`).
+  Bu qərardan əvvəl «pending» qalan müəlliflər bir dəfə aktivləşdirilib
+  (`settings` → `policy:authors_no_approval`, audit: `authors_auto_activate`).
+  Admin istənilən müəllifi sonradan bloklaya və ya rədd edə bilər.
+- İstehsalçı, investor və satıcı üçün Parametrlərdə **avtomatik təsdiq**
+  (`auto_maker`, `auto_investor`, `auto_seller`) — default söndürülüb, yəni admin yoxlayır.
 
 ## Lokal işə salma
 

@@ -399,6 +399,10 @@ async function adminSettings() {
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>⚡ ${esc(t('ad_auto'))}</h3>
       <p class="muted" style="font-size:12.5px;margin:4px 0 10px">${esc(t('ad_autoSub'))}</p>
+      <label class="checkrow" style="cursor:default" title="${esc(t('ad_autoAuthor'))}">
+        <input type="checkbox" checked disabled>
+        ${ROLE_META.author.emoji} ${esc(rl('author'))} <span class="muted" style="font-weight:600">— ${esc(t('ad_autoAuthor'))}</span>
+      </label>
       ${AUTO_ROLES.map((r) => `
         <label class="checkrow">
           <input type="checkbox" id="set_auto_${r}" ${s['auto_' + r] === '1' ? 'checked' : ''}>
@@ -417,7 +421,8 @@ async function adminSettings() {
   </div>`;
 }
 
-const AUTO_ROLES = ['author', 'seller', 'maker', 'investor'];
+// İdeya müəllifi burada yoxdur — o, həmişə təsdiqsiz aktivləşir (server qaydası).
+const AUTO_ROLES = ['seller', 'maker', 'investor'];
 
 async function saveSettings() {
   const keys = ['fee_production', 'fee_investment', 'fee_sales', 'fee_escrow', 'fee_partner',

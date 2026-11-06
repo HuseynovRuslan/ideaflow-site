@@ -374,7 +374,8 @@ public static class Settings
         "fee_production", "fee_investment", "fee_sales", "fee_escrow", "fee_partner",
         "sub_author", "sub_maker", "sub_investor", "sub_seller",
         // Qeydiyyatda avtomatik aktivləşmə ("1"/"0") — admin hər hesabı əl ilə təsdiqləməsin.
-        "auto_author", "auto_maker", "auto_investor", "auto_seller",
+        // İdeya müəllifi burada yoxdur: o, həmişə təsdiqsiz aktivləşir (AuthApi.cs).
+        "auto_maker", "auto_investor", "auto_seller",
         // Claude təhlili: bir istifadəçinin gündə neçə dəfə işlədə biləcəyi.
         "ai_daily_limit",
     ];
@@ -384,8 +385,8 @@ public static class Settings
         ["fee_production"] = "5", ["fee_investment"] = "3", ["fee_sales"] = "3",
         ["fee_escrow"] = "1", ["fee_partner"] = "15",
         ["sub_author"] = "29", ["sub_maker"] = "99", ["sub_investor"] = "199", ["sub_seller"] = "99",
-        // Default: heç kim avtomatik keçmir — təhlükəsiz başlanğıc, admin özü açır.
-        ["auto_author"] = "0", ["auto_maker"] = "0", ["auto_investor"] = "0", ["auto_seller"] = "0",
+        // Default: istehsalçı/investor/satıcı avtomatik keçmir — təhlükəsiz başlanğıc, admin özü açır.
+        ["auto_maker"] = "0", ["auto_investor"] = "0", ["auto_seller"] = "0",
         ["ai_daily_limit"] = "5",
     };
 
